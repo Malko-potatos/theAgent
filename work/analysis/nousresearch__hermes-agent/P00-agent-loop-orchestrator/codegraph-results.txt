@@ -1,0 +1,1681 @@
+# CodeGraph Results
+
+Generated: 2026-06-19T12:35:56+09:00
+
+Note: CodeGraph may create or update `.codegraph/` inside the source checkout.
+
+┌  Initializing CodeGraph
+│
+▲  Already initialized in /Users/potablepotato/HansolProduct/potato-project/theAgent/work/external-repos/nousresearch__hermes-agent
+│
+●  Use "codegraph index" to re-index or "codegraph sync" to update
+│
+└  
+
+[1m
+CodeGraph Status
+[0m
+[36mProject:[0m /Users/potablepotato/HansolProduct/potato-project/theAgent/work/external-repos/nousresearch__hermes-agent
+
+[1mIndex Statistics:[0m
+  Files:     3,501
+  Nodes:     97,077
+  Edges:     279,291
+  DB Size:   218.96 MB
+  Backend:   [32mnode:sqlite — built-in (full WAL)[0m
+  Journal:   [32mwal[0m
+
+[1mNodes by Kind:[0m
+  method          32,628
+  function        27,470
+  import          16,445
+  class           7,062
+  variable        5,263
+  file            3,376
+  constant        2,210
+  interface       945
+  property        919
+  type_alias      476
+  route           240
+  enum_member     23
+  struct          12
+  enum            7
+  component       1
+
+[1mFiles by Language:[0m
+  python          2,367
+  typescript      596
+  tsx             311
+  yaml            125
+  javascript      89
+  rust            9
+  liquid          3
+  ruby            1
+
+[32m✓[0m Index is up to date
+
+
+## Explore Queries
+
+
+### where is the main agent loop, turn loop, or orchestration state machine implemented?
+
+## Exploration: where is the main agent loop, turn loop, or orchestration state machine implemented?
+
+Found 234 symbols across 61 files.
+
+### Blast radius — what depends on these (update/verify before editing)
+
+- `TurnRetryState` (agent/turn_retry_state.py:33) — 5 callers in `agent/conversation_loop.py`; tests: `tests/agent/test_turn_retry_state.py`
+- `TurnState` (ui-tui/src/app/turnStore.ts:69) — 3 callers in `ui-tui/src/app/turnStore.ts`; ⚠️ no covering tests found
+- `TurnContext` (agent/turn_context.py:38) — 2 callers in `agent/turn_context.py`; tests: `tests/agent/test_turn_context.py`
+- `TurnResult` (agent/transports/codex_app_server_session.py:65) — 7 callers in `agent/transports/codex_app_server_session.py`; tests: `tests/run_agent/test_codex_app_server_integration.py`
+
+### Relationships
+
+**instantiates:**
+- run_conversation → TurnRetryState
+- build_turn_context → TurnContext
+- run_turn → TurnResult
+
+**references:**
+- TurnState → ActivityItem
+- TurnState → Msg
+- run_conversation → _ra
+- run_conversation → _summarize_user_message_for_log
+- run_conversation → _perform_api_call
+- run_conversation → _sanitize_surrogates
+- run_conversation → set_current_write_origin
+- _perform_api_call → _stop_spinner
+- run_conversation → _install_safe_stdio
+- run_conversation → set_session_context
+- ... and 41 more
+
+**calls:**
+- main → resolve_commit_pin
+- main → resolve_branch_pin
+- main → locate_git_dir
+- resolve_commit_pin → output
+- resolve_commit_pin → new
+- run_conversation → run_llm_execution_middleware
+- run_conversation → estimate_request_tokens_rough
+- build_turn_context → estimate_request_tokens_rough
+- flushStreamingSegment → hasDetails
+- recordMessageComplete → hasDetails
+- ... and 188 more
+
+### Source Code
+
+> The code below is the **verbatim, current on-disk source** of these files — re-read from disk on this call and line-numbered, byte-for-byte identical to what the Read tool returns. It is NOT a summary, outline, or stale cache. Treat each block as a Read you have already performed: do not Read a file shown here.
+
+#### hermes_cli/main.py — calls(calls), cmd_chat(calls), instantiates(instantiates), cmd_chat(references), _coalesce_session_name_args(calls), _prepare_agent_startup(calls), _try_termux_fast_cli_launch(function), get(calls), _try_termux_fast_tui_launch(function), cmd_memory(function), +70 more
+
+```python
+11287	            setattr(args, attr, default)
+11288	
+11289	
+11290	def _try_termux_fast_cli_launch() -> bool:
+11291	    """Run obvious Termux non-TUI chat/oneshot/version paths on a light parser."""
+11292	    if not _is_termux_startup_environment():
+11293	        return False
+11294	    if os.environ.get("HERMES_TERMUX_DISABLE_FAST_CLI") == "1":
+11295	        return False
+11296	
+11297	    argv = sys.argv[1:]
+11298	    if "-h" in argv or "--help" in argv:
+11299	        return False
+11300	    # Let the TUI fast path (or full dispatch) handle anything that resolves to
+11301	    # the TUI — explicit --tui/env or display.interface=tui. `--cli` forces this
+11302	    # to stay False so the classic fast path still runs.
+11303	    if _wants_tui_early(argv):
+11304	        return False
+11305	
+11306	    if _is_termux_fast_version_argv(argv):
+11307	        _print_version_info(check_updates=False)
+11308	        return True
+11309	
+11310	    first = _first_positional_argv()
+11311	    has_oneshot = any(
+11312	        arg == "-z" or arg == "--oneshot" or arg.startswith("--oneshot=")
+11313	        for arg in argv
+11314	    )
+11315	    if not has_oneshot and first not in {None, "chat"}:
+11316	        return False
+11317	
+11318	    from hermes_cli._parser import build_top_level_parser
+11319	
+11320	    parser, _subparsers, chat_parser = build_top_level_parser()
+11321	    chat_parser.set_defaults(func=cmd_chat)
+11322	    args = parser.parse_args(_coalesce_session_name_args(argv))
+11323	
+11324	    if getattr(args, "version", False):
+11325	        _print_version_info(check_updates=False)
+11326	        return True
+11327	
+11328	    if getattr(args, "oneshot", None):
+11329	        _prepare_agent_startup(args)
+11330	        from hermes_cli.oneshot import run_oneshot
+11331	
+11332	        sys.exit(
+11333	            run_oneshot(
+11334	                args.oneshot,
+11335	                model=getattr(args, "model", None),
+11336	                provider=getattr(args, "provider", None),
+11337	                toolsets=getattr(args, "toolsets", None),
+11338	            )
+11339	        )
+11340	
+11341	    if (args.resume or args.continue_last) and args.command is None:
+11342	        args.command = "chat"
+11343	
+11344	    if args.command in {None, "chat"}:
+11345	        _set_chat_arg_defaults(args)
+11346	        interactive_prompt = not getattr(args, "query", None) and not getattr(args, "image", None)
+11347	        if interactive_prompt:
+11348	            # Bare Termux CLI should reach the prompt first and do agent-only
+11349	            # discovery on the first submitted turn instead of before input.
+11350	            setattr(args, "compact", True)
+11351	            os.environ["HERMES_DEFER_AGENT_STARTUP"] = "1"
+11352	            os.environ["HERMES_FAST_STARTUP_BANNER"] = "1"
+11353	            if getattr(args, "accept_hooks", False):
+11354	                os.environ["HERMES_ACCEPT_HOOKS"] = "1"
+11355	        else:
+11356	            _prepare_agent_startup(args)
+11357	        cmd_chat(args)
+11358	        return True
+11359	
+11360	    return False
+11361	
+11362	
+11363	def _try_termux_fast_tui_launch() -> bool:
+11364	    """Launch obvious Termux TUI invocations before building every subparser.
+11365	
+11366	    `hermes --tui` is the hot path on phones. The full parser setup imports
+11367	    command modules for model, fallback, migrate, kanban, bundles, plugins,
+11368	    etc. even though the TUI immediately execs Node. On Termux only, parse the
+11369	    lightweight top-level/chat parser and hand off to ``cmd_chat`` when the
+11370	    invocation is unambiguously the built-in TUI/chat path.
+11371	    """
+11372	    if not _is_termux_startup_environment():
+11373	        return False
+11374	
+11375	    if "-h" in sys.argv[1:] or "--help" in sys.argv[1:]:
+11376	        return False
+11377	
+11378	    wants_tui = _wants_tui_early(sys.argv[1:])
+11379	    if not wants_tui:
+11380	        return False
+11381	
+11382	    first = _first_positional_argv()
+11383	    if first not in {None, "chat"}:
+11384	        return False
+11385	
+11386	    from hermes_cli._parser import build_top_level_parser
+11387	
+11388	    parser, _subparsers, chat_parser = build_top_level_parser()
+11389	    chat_parser.set_defaults(func=cmd_chat)
+11390	    args = parser.parse_args(_coalesce_session_name_args(sys.argv[1:]))
+11391	
+11392	    # Preserve top-level behaviours whose semantics are not "launch chat/TUI".
+11393	    if getattr(args, "version", False) or getattr(args, "oneshot", None):
+11394	        return False
+11395	    if getattr(args, "command", None) not in {None, "chat"}:
+11396	        return False
+11397	    if not _resolve_use_tui(args):
+11398	        return False
+11399	
+11400	    cmd_chat(args)
+11401	    return True
+11402	
+11403	
+11404	def cmd_memory(args):
+11405	    sub = getattr(args, "memory_command", None)
+11406	    if sub == "off":
+11407	        from hermes_cli.config import load_config, save_config
+11408	
+11409	        config = load_config()
+11410	        if not isinstance(config.get("memory"), dict):
+11411	            config["memory"] = {}
+11412	        config["memory"]["provider"] = ""
+11413	        save_config(config)
+11414	        print("\n  ✓ Memory provider: built-in only")
+11415	        print("  Saved to config.yaml\n")
+11416	    elif sub == "reset":
+11417	        from hermes_constants import get_hermes_home, display_hermes_home
+11418	
+11419	        mem_dir = get_hermes_home() / "memories"
+11420	        target = getattr(args, "target", "all")
+11421	        files_to_reset = []
+11422	        if target in {"all", "memory"}:
+11423	            files_to_reset.append(("MEMORY.md", "agent notes"))
+11424	        if target in {"all", "user"}:
+11425	            files_to_reset.append(("USER.md", "user profile"))
+11426	
+11427	        # Check what exists
+11428	        existing = [
+11429	            (f, desc) for f, desc in files_to_reset if (mem_dir / f).exists()
+11430	        ]
+11431	        if not existing:
+11432	            print(
+11433	                f"\n  Nothing to reset — no memory files found in {display_hermes_home()}/memories/\n"
+11434	            )
+11435	            return
+11436	
+11437	        print(f"\n  This will permanently erase the following memory files:")
+11438	        for f, desc in existing:
+11439	            path = mem_dir / f
+11440	            size = path.stat().st_size
+11441	            print(f"    ◆ {f} ({desc}) — {size:,} bytes")
+11442	
+11443	        if not getattr(args, "yes", False):
+11444	            try:
+11445	                answer = input("\n  Type 'yes' to confirm: ").strip().lower()
+11446	            except (EOFError, KeyboardInterrupt):
+11447	                print("\n  Cancelled.\n")
+11448	                return
+11449	            if answer != "yes":
+11450	                print("  Cancelled.\n")
+11451	                return
+11452	
+11453	        for f, desc in existing:
+11454	            (mem_dir / f).unlink()
+11455	            print(f"  ✓ Deleted {f} ({desc})")
+11456	
+11457	        print(
+11458	            f"\n  Memory reset complete. New sessions will start with a blank slate."
+11459	        )
+11460	        print(f"  Files were in: {display_hermes_home()}/memories/\n")
+11461	    else:
+11462	        from hermes_cli.memory_setup import memory_command
+11463	
+11464	        memory_command(args)
+11465	
+11466	
+11467	def cmd_acp(args):
+11468	    """Launch Hermes Agent as an ACP server."""
+11469	    try:
+11470	        from acp_adapter.entry import main as acp_main
+11471	
+11472	        acp_argv = []
+11473	        if getattr(args, "acp_version", False):
+11474	            acp_argv.append("--version")
+11475	        if getattr(args, "check", False):
+11476	            acp_argv.append("--check")
+11477	        if getattr(args, "setup", False):
+11478	            acp_argv.append("--setup")
+11479	        if getattr(args, "setup_browser", False):
+11480	            acp_argv.append("--setup-browser")
+11481	        if getattr(args, "assume_yes", False):
+11482	            acp_argv.append("--yes")
+11483	        acp_main(acp_argv)
+11484	    except ImportError:
+11485	        print("ACP dependencies not installed.", file=sys.stderr)
+11486	        print("Install them with:  pip install -e '.[acp]'", file=sys.stderr)
+11487	        sys.exit(1)
+11488	
+11489	
+11490	def cmd_tools(args):
+11491	    action = getattr(args, "tools_action", None)
+11492	    if action in {"list", "disable", "enable"}:
+11493	        from hermes_cli.tools_config import tools_disable_enable_command
+11494	
+11495	        tools_disable_enable_command(args)
+11496	    elif action == "post-setup":
+11497	        from hermes_cli.tools_config import run_post_setup_command
+11498	
+11499	        sys.exit(run_post_setup_command(args))
+11500	    else:
+11501	        _require_tty("tools")
+11502	        from hermes_cli.tools_config import tools_command
+11503	
+11504	        tools_command(args)
+11505	
+11506	
+11507	def cmd_insights(args):
+11508	    try:
+11509	        from hermes_state import SessionDB
+11510	        from agent.insights import InsightsEngine
+11511	
+11512	        db = SessionDB()
+11513	        engine = InsightsEngine(db)
+11514	        report = engine.generate(days=args.days, source=args.source)
+11515	        print(engine.format_terminal(report))
+11516	        db.close()
+11517	    except Exception as e:
+11518	        print(f"Error generating insights: {e}")
+11519	
+11520	
+11521	def cmd_skills(args):
+11522	    # Route 'config' action to skills_config module
+11523	    if getattr(args, "skills_action", None) == "config":
+11524	        _require_tty("skills config")
+11525	        from hermes_cli.skills_config import skills_command as skills_config_command
+11526	
+11527	        skills_config_command(args)
+11528	    else:
+11529	        from hermes_cli.skills_hub import skills_command
+11530	
+11531	        skills_command(args)
+11532	
+11533	
+11534	def cmd_pairing(args):
+11535	    from hermes_cli.pairing import pairing_command
+11536	
+11537	    pairing_command(args)
+11538	
+11539	
+11540	def cmd_plugins(args):
+11541	    from hermes_cli.plugins_cmd import plugins_command
+11542	
+11543	    plugins_command(args)
+11544	
+11545	
+11546	def cmd_mcp(args):
+11547	    from hermes_cli.mcp_config import mcp_command
+11548	
+11549	    mcp_command(args)
+11550	
+11551	
+11552	def cmd_claw(args):
+11553	    from hermes_cli.claw import claw_command
+11554	
+11555	    claw_command(args)
+11556	
+11557	
+11558	def main():
+11559	    """Main entry point for hermes CLI."""
+11560	    # Cosmetic: make the process show up as 'hermes' instead of 'python3.11'
+11561	    # in ps/top/htop.  Non-fatal — just a nicer UX.
+11562	    _set_process_title()
+11563	
+11564	    # Force UTF-8 stdio on Windows before anything prints.  No-op elsewhere.
+11565	    try:
+11566	        from hermes_cli.stdio import configure_windows_stdio
+11567	        configure_windows_stdio()
+11568	    except Exception:
+11569	        pass
+11570	
+11571	    # Sweep stale ``hermes.exe.old.*`` quarantine files left by previous
+11572	    # ``hermes update`` runs on Windows. Silent no-op on non-Windows or when
+11573	    # there's nothing to clean. See ``_quarantine_running_hermes_exe``.
+11574	    try:
+11575	        _cleanup_quarantined_exes()
+11576	    except Exception:
+11577	        pass
+11578	
+11579	    # Self-heal a venv left half-built by an interrupted ``hermes update``
+11580	    # (Ctrl-C, terminal close, WSL OOM mid-install). Skip when the user is
+11581	    # *running* update — that flow writes and clears its own marker, and we
+11582	    # don't want a recovery install racing the real one. Never raises.
+11583	    #
+11584	    # The substring match is deliberately loose: argv isn't parsed yet at this
+11585	    # point, and the failure modes are asymmetric. Over-matching (e.g.
+11586	    # ``hermes skills install update``) merely defers recovery one launch;
+11587	    # under-matching (missing ``hermes -p work update``) would race a recovery
+11588	    # install against the real one. Loose wins.
+11589	    try:
+11590	        if "update" not in sys.argv[1:]:
+11591	            _recover_from_interrupted_install()
+11592	    except Exception:
+11593	        pass
+11594	
+11595	    if _try_termux_fast_tui_launch():
+11596	        return
+11597	    if _try_termux_fast_cli_launch():
+11598	        return
+11599	
+11600	    from hermes_cli._parser import build_top_level_parser
+11601	
+11602	    parser, subparsers, chat_parser = build_top_level_parser()
+11603	    chat_parser.set_defaults(func=cmd_chat)
+11604	
+11605	    # =========================================================================
+11606	    # model command  (parser built in hermes_cli/subcommands/model.py)
+11607	    # =========================================================================
+11608	    build_model_parser(subparsers, cmd_model=cmd_model)
+11609	
+11610	    # =========================================================================
+11611	    # fallback command — manage the fallback provider chain
+11612	    # =========================================================================
+11613	    from hermes_cli.fallback_cmd import cmd_fallback
+11614	
+11615	    fallback_parser = subparsers.add_parser(
+11616	        "fallback",
+11617	        help="Manage fallback providers (tried when the primary model fails)",
+11618	        description=(
+11619	            "Manage the fallback provider chain.  Fallback providers are tried "
+11620	            "in order when the primary model fails with rate-limit, overload, or "
+11621	            "connection errors.  See: "
+11622	            "https://hermes-agent.nousresearch.com/docs/user-guide/features/fallback-providers"
+11623	        ),
+11624	    )
+11625	    fallback_subparsers = fallback_parser.add_subparsers(dest="fallback_command")
+11626	    fallback_subparsers.add_parser(
+11627	        "list",
+11628	        aliases=["ls"],
+11629	        help="Show the current fallback chain (default when no subcommand)",
+11630	    )
+11631	    fallback_subparsers.add_parser(
+11632	        "add",
+11633	        help="Pick a provider + model (same picker as `hermes model`) and append to the chain",
+11634	    )
+11635	    fallback_subparsers.add_parser(
+11636	        "remove",
+11637	        aliases=["rm"],
+11638	        help="Pick an entry to delete from the chain",
+11639	    )
+11640	    fallback_subparsers.add_parser(
+11641	        "clear",
+11642	        help="Remove all fallback entries",
+11643	    )
+11644	    fallback_parser.set_defaults(func=cmd_fallback)
+11645	
+11646	    # =========================================================================
+11647	    # secrets command — external secret managers (currently: Bitwarden)
+11648	    # =========================================================================
+11649	    secrets_parser = subparsers.add_parser(
+11650	        "secrets",
+11651	        help="Manage external secret sources (Bitwarden Secrets Manager)",
+11652	        description=(
+11653	            "Pull API keys from an external secret manager at process startup "
+11654	            "instead of storing them in ~/.hermes/.env.  Currently supports "
+11655	            "Bitwarden Secrets Manager.  See: "
+11656	            "https://hermes-agent.nousresearch.com/docs/user-guide/secrets/bitwarden"
+11657	        ),
+11658	    )
+11659	    secrets_subparsers = secrets_parser.add_subparsers(dest="secrets_command")
+11660	
+11661	    secrets_bw = secrets_subparsers.add_parser(
+11662	        "bitwarden",
+11663	        aliases=["bw"],
+11664	        help="Bitwarden Secrets Manager integration",
+11665	    )
+11666	
+11667	    # Lazy import — only pays for itself when this subcommand is actually used.
+11668	    from hermes_cli import secrets_cli as _secrets_cli
+11669	
+11670	    _secrets_cli.register_cli(secrets_bw)
+11671	
+11672	    def _dispatch_secrets(args):  # noqa: ANN001
+11673	        sub = getattr(args, "secrets_command", None)
+11674	        bw_sub = getattr(args, "secrets_bw_command", None)
+11675	        if sub in ("bitwarden", "bw") and bw_sub is not None:
+11676	            return args.func(args)
+11677	        secrets_parser.print_help()
+11678	        return 0
+11679	
+11680	    secrets_parser.set_defaults(func=_dispatch_secrets)
+11681	
+11682	    # =========================================================================
+11683	    # migrate command
+11684	    # =========================================================================
+11685	    from hermes_cli.migrate import cmd_migrate, cmd_migrate_xai
+11686	
+11687	    migrate_parser = subparsers.add_parser(
+11688	        "migrate",
+11689	        help="Migrate configuration for retired models or deprecated settings",
+11690	        description=(
+11691	            "Diagnose and (optionally) rewrite the active config.yaml to "
+11692	            "replace references to retired models or deprecated settings."
+11693	        ),
+11694	    )
+11695	    migrate_subparsers = migrate_parser.add_subparsers(dest="migrate_type")
+11696	
+11697	    migrate_xai = migrate_subparsers.add_parser(
+11698	        "xai",
+11699	        help="Migrate xAI models scheduled for retirement on May 15, 2026",
+11700	        description=(
+11701	            "Scan config.yaml for references to xAI models retiring on "
+11702	            "May 15, 2026 and, with --apply, rewrite them in-place to the "
+11703	            "official replacements per the xAI migration guide. The original "
+11704	            "config.yaml is backed up before any rewrite."
+11705	        ),
+11706	    )
+11707	    migrate_xai.add_argument(
+11708	        "--apply",
+11709	        action="store_true",
+11710	        help="Rewrite config.yaml in-place (default: dry-run, no writes)",
+11711	    )
+11712	    migrate_xai.add_argument(
+11713	        "--no-backup",
+11714	        action="store_true",
+11715	        help="Skip the timestamped backup of config.yaml when applying",
+11716	    )
+11717	    migrate_xai.set_defaults(func=cmd_migrate_xai)
+11718	    migrate_parser.set_defaults(func=cmd_migrate)
+11719	
+11720	    # =========================================================================
+11721	    # gateway + proxy commands  (parsers built in hermes_cli/subcommands/gateway.py)
+11722	    # =========================================================================
+11723	    build_gateway_parser(
+11724	        subparsers, cmd_gateway=cmd_gateway, cmd_proxy=cmd_proxy, cmd_gateway_enroll=cmd_gateway_enroll
+11725	    )
+11726	
+11727	    # =========================================================================
+11728	    # lsp command
+11729	    # =========================================================================
+11730	    try:
+11731	        from agent.lsp.cli import register_subparser as _lsp_register
+11732	        _lsp_register(subparsers)
+11733	    except Exception as _lsp_err:  # noqa: BLE001
+11734	        # LSP is optional infrastructure — never let a registration
+11735	        # failure break the CLI overall.
+11736	        logger.debug("LSP CLI registration failed: %s", _lsp_err)
+11737	
+11738	    # =========================================================================
+11739	    # setup command  (parser built in hermes_cli/subcommands/setup.py)
+11740	    # =========================================================================
+11741	    build_setup_parser(subparsers, cmd_setup=cmd_setup)
+11742	
+11743	    # =========================================================================
+11744	    # postinstall command  (parser built in hermes_cli/subcommands/postinstall.py)
+11745	    # =========================================================================
+11746	    build_postinstall_parser(subparsers, cmd_postinstall=cmd_postinstall)
+11747	
+11748	    # =========================================================================
+11749	    # whatsapp command  (parser built in hermes_cli/subcommands/whatsapp.py)
+11750	    # =========================================================================
+11751	    build_whatsapp_parser(subparsers, cmd_whatsapp=cmd_whatsapp)
+11752	
+11753	    # =========================================================================
+11754	    # whatsapp-cloud command (official Meta Cloud API; complement to Baileys)
+11755	    # =========================================================================
+11756	    whatsapp_cloud_parser = subparsers.add_parser(
+11757	        "whatsapp-cloud",
+11758	        help="Set up WhatsApp Business Cloud API integration",
+11759	        description=(
+11760	            "Configure the official Meta WhatsApp Business Cloud API "
+11761	            "adapter (Business account required, public webhook URL "
+11762	            "required). Distinct from `hermes whatsapp` which sets up "
+11763	            "the Baileys bridge for personal accounts."
+11764	        ),
+11765	    )
+11766	    whatsapp_cloud_parser.set_defaults(func=cmd_whatsapp_cloud)
+11767	
+11768	    # =========================================================================
+11769	    # slack command  (parser built in hermes_cli/subcommands/slack.py)
+11770	    # =========================================================================
+11771	    build_slack_parser(subparsers, cmd_slack=cmd_slack)
+11772	
+11773	    # =========================================================================
+11774	    # send command — pipe shell-script output to any configured platform
+11775	    # =========================================================================
+11776	    from hermes_cli.send_cmd import register_send_subparser
+11777	    register_send_subparser(subparsers)
+11778	
+11779	    # =========================================================================
+11780	    # login command  (parser built in hermes_cli/subcommands/login.py)
+11781	    # =========================================================================
+11782	    build_login_parser(subparsers, cmd_login=cmd_login)
+11783	
+11784	    # =========================================================================
+11785	    # logout command  (parser built in hermes_cli/subcommands/logout.py)
+11786	    # =========================================================================
+11787	    build_logout_parser(subparsers, cmd_logout=cmd_logout)
+11788	
+11789	    # =========================================================================
+11790	    # auth command  (parser built in hermes_cli/subcommands/auth.py)
+11791	    # =========================================================================
+11792	    build_auth_parser(subparsers, cmd_auth=cmd_auth)
+11793	
+11794	    # =========================================================================
+11795	    # status command  (parser built in hermes_cli/subcommands/status.py)
+11796	    # =========================================================================
+
+... (output truncated to budget; the source above is complete and verbatim — treat it as already Read. For any area not covered, run another codegraph_explore with the specific names — do NOT Read these files.)
+
+### turn start model call tool call loop stop condition abort resume retry event append
+
+## Exploration: turn start model call tool call loop stop condition abort resume retry event append
+
+Found 228 symbols across 67 files.
+
+### Blast radius — what depends on these (update/verify before editing)
+
+- `TurnRetryState` (agent/turn_retry_state.py:33) — 5 callers in `agent/conversation_loop.py`; tests: `tests/agent/test_turn_retry_state.py`
+- `Event` (ui-tui/packages/hermes-ink/src/ink/events/event.ts:1) — 7 callers in `ui-tui/packages/hermes-ink/src/ink/events/click-event.ts`, `ui-tui/packages/hermes-ink/src/ink/events/emitter.ts`, `ui-tui/packages/hermes-ink/src/ink/events/input-event.ts`, `ui-tui/packages/hermes-ink/src/ink/events/mouse-event.ts` +3 more; ⚠️ no covering tests found
+- `append` (ui-tui/src/lib/history.ts:47) — 402 callers in `acp_adapter/server.py`, `agent/agent_init.py`, `agent/anthropic_adapter.py`, `agent/bedrock_adapter.py` +92 more; tests: `apps/desktop/src/app/chat/composer/rich-editor.test.ts`, `tests/acp/test_session.py`, `tests/acp_adapter/test_acp_commands.py`, `tests/agent/test_auxiliary_client.py` +105
+- `resume` (plugins/platforms/discord/adapter.py:291) — 5 callers in `plugins/platforms/discord/adapter.py`; tests: `tests/gateway/test_voice_command.py`, `tests/integration/test_voice_channel_flow.py`
+- `resume` (ui-tui/packages/hermes-ink/src/ink/ink.tsx:1180) — 2 callers in `apps/desktop/src/app/chat/composer/voice-activity.tsx`, `ui-tui/packages/hermes-ink/src/ink/ink.tsx`; ⚠️ no covering tests found
+
+### Relationships
+
+**instantiates:**
+- run_conversation → TurnRetryState
+
+**extends:**
+- ClickEvent → Event
+- InputEvent → Event
+- MouseEvent → Event
+- TerminalEvent → Event
+- TerminalFocusEvent → Event
+
+**calls:**
+- stop → setBusy
+- setBusy → updateAtom
+- stop → send_heartbeat_once
+- disconnect → stop
+- disconnect → stop
+- run_conversation → run_llm_execution_middleware
+- run_conversation → estimate_request_tokens_rough
+- build_turn_context → estimate_request_tokens_rough
+- run_conversation → _sanitize_messages_surrogates
+- run_conversation → format_steer_marker
+- ... and 174 more
+
+**references:**
+- ItemSpec → Event
+- Handler → InputEvent
+- Props → ClickEvent
+- ClickEventHandler → ClickEvent
+- RowIconButton → MouseEvent
+- Props → MouseEvent
+- MouseEventHandler → MouseEvent
+- SessionRowProps → MouseEvent
+- run_conversation → _ra
+- run_conversation → _summarize_user_message_for_log
+- ... and 7 more
+
+### Source Code
+
+> The code below is the **verbatim, current on-disk source** of these files — re-read from disk on this call and line-numbered, byte-for-byte identical to what the Read tool returns. It is NOT a summary, outline, or stale cache. Treat each block as a Read you have already performed: do not Read a file shown here.
+
+#### gateway/run.py — calls(calls), join(calls), start(method), items(calls), references(references)
+
+```python
+4924	            )
+4925	        return scheduled
+4926	
+4927	    async def start(self) -> bool:
+4928	        """
+4929	        Start the gateway and all configured platform adapters.
+4930	        
+4931	        Returns True if at least one adapter connected successfully.
+4932	        """
+4933	        logger.info("Starting Hermes Gateway...")
+4934	        try:
+4935	            self._gateway_loop = asyncio.get_running_loop()
+4936	        except RuntimeError:
+4937	            self._gateway_loop = None
+4938	        logger.info("Session storage: %s", self.config.sessions_dir)
+4939	
+4940	        # Sanity-check that systemd's TimeoutStopSec covers our drain
+4941	        # window.  When the user upgraded hermes-agent without re-running
+4942	        # ``hermes setup``, their unit file may still encode the old
+4943	        # default — in which case SIGKILL hits mid-drain and looks like
+4944	        # a phantom kill in the journal.  Best-effort, never raises.
+4945	        try:
+4946	            from gateway.shutdown_forensics import check_systemd_timing_alignment
+4947	            _alignment = check_systemd_timing_alignment(self._restart_drain_timeout)
+4948	            if _alignment is not None and _alignment.get("mismatch"):
+4949	                logger.warning(
+4950	                    "Stale systemd unit detected: %s has TimeoutStopSec=%.0fs but "
+4951	                    "drain_timeout=%.0fs (expected >=%.0fs). systemd may SIGKILL the "
+4952	                    "gateway mid-drain. Run `hermes gateway service install --replace` "
+4953	                    "to regenerate the unit, or shorten agent.restart_drain_timeout.",
+4954	                    _alignment.get("unit", "(unknown)"),
+4955	                    _alignment["timeout_stop_sec"],
+4956	                    _alignment["drain_timeout"],
+4957	                    _alignment["expected_min"],
+4958	                )
+4959	        except Exception as _e:
+4960	            logger.debug("check_systemd_timing_alignment failed: %s", _e)
+4961	        # Log the resolved max_iterations budget so operators can verify the
+4962	        # config.yaml → env bridge did the right thing at a glance (instead
+4963	        # of silently running at a stale .env value for weeks).
+4964	        try:
+4965	            _effective_max_iter = int(os.getenv("HERMES_MAX_ITERATIONS", "90"))
+4966	            logger.info(
+4967	                "Agent budget: max_iterations=%d (agent.max_turns from config.yaml, "
+4968	                "or HERMES_MAX_ITERATIONS from .env, or default 90)",
+4969	                _effective_max_iter,
+4970	            )
+4971	        except Exception:
+4972	            pass
+4973	        # Redaction status: ON by default (#17691). Surface a prominent
+4974	        # warning if an operator has explicitly opted out so they don't
+4975	        # forget the downgrade is active — the redactor snapshots its
+4976	        # state at import time, so this log line is the source of truth
+4977	        # for this process's lifetime.
+4978	        try:
+4979	            _redact_raw = os.getenv("HERMES_REDACT_SECRETS", "true")
+4980	            _redact_on = _redact_raw.lower() in {"1", "true", "yes", "on"}
+4981	            if _redact_on:
+4982	                logger.info(
+4983	                    "Secret redaction: ENABLED (tool output, logs, and chat "
+4984	                    "responses are scrubbed before delivery)"
+4985	                )
+4986	            else:
+4987	                logger.warning(
+4988	                    "Secret redaction: DISABLED (HERMES_REDACT_SECRETS=%s). "
+4989	                    "API keys and tokens may appear verbatim in chat output, "
+4990	                    "session JSONs, and logs. Set security.redact_secrets: true "
+4991	                    "in config.yaml to re-enable.",
+4992	                    _redact_raw,
+4993	                )
+4994	        except Exception:
+4995	            pass
+4996	        try:
+4997	            from hermes_cli.profiles import get_active_profile_name
+4998	            _profile = get_active_profile_name()
+4999	            if _profile and _profile != "default":
+5000	                logger.info("Active profile: %s", _profile)
+5001	        except Exception:
+5002	            pass
+5003	        try:
+5004	            from gateway.status import write_runtime_status
+5005	            write_runtime_status(gateway_state="starting", exit_reason=None)
+5006	        except Exception:
+5007	            pass
+5008	
+5009	        # Log any active supply-chain security advisories. Operators see this
+5010	        # in gateway.log and `hermes status` surfaces it; we do NOT block
+5011	        # startup or surface it inline to user messages, since the gateway
+5012	        # operator is the one who can act on it (uninstall the package,
+5013	        # rotate credentials).  See hermes_cli/security_advisories.py.
+5014	        try:
+5015	            from hermes_cli.security_advisories import (
+5016	                detect_compromised,
+5017	                gateway_log_message,
+5018	            )
+5019	            _adv_hits = detect_compromised()
+5020	            _adv_msg = gateway_log_message(_adv_hits)
+5021	            if _adv_msg:
+5022	                logger.warning("%s", _adv_msg)
+5023	                logger.warning(
+5024	                    "Run `hermes doctor` on the gateway host for full "
+5025	                    "remediation steps."
+5026	                )
+5027	        except Exception:
+5028	            logger.debug(
+5029	                "security advisory check failed at gateway startup",
+5030	                exc_info=True,
+5031	            )
+5032	        
+5033	        # Warn if no user allowlists are configured and open access is not opted in
+5034	        _builtin_allowed_vars = (
+5035	            "TELEGRAM_ALLOWED_USERS", "DISCORD_ALLOWED_USERS",
+5036	            "WHATSAPP_ALLOWED_USERS", "WHATSAPP_CLOUD_ALLOWED_USERS",
+5037	            "SLACK_ALLOWED_USERS",
+5038	            "SIGNAL_ALLOWED_USERS", "SIGNAL_GROUP_ALLOWED_USERS",
+5039	            "TELEGRAM_GROUP_ALLOWED_USERS",
+5040	            "TELEGRAM_GROUP_ALLOWED_CHATS",
+5041	            "EMAIL_ALLOWED_USERS",
+5042	            "SMS_ALLOWED_USERS", "MATTERMOST_ALLOWED_USERS",
+5043	            "MATRIX_ALLOWED_USERS", "DINGTALK_ALLOWED_USERS",
+5044	            "FEISHU_ALLOWED_USERS",
+5045	            "WECOM_ALLOWED_USERS",
+5046	            "WECOM_CALLBACK_ALLOWED_USERS",
+5047	            "WEIXIN_ALLOWED_USERS",
+5048	            "BLUEBUBBLES_ALLOWED_USERS",
+5049	            "QQ_ALLOWED_USERS",
+5050	            "YUANBAO_ALLOWED_USERS",
+5051	            "GATEWAY_ALLOWED_USERS",
+5052	        )
+5053	        _builtin_allow_all_vars = (
+5054	            "TELEGRAM_ALLOW_ALL_USERS", "DISCORD_ALLOW_ALL_USERS",
+5055	            "WHATSAPP_ALLOW_ALL_USERS", "WHATSAPP_CLOUD_ALLOW_ALL_USERS",
+5056	            "SLACK_ALLOW_ALL_USERS",
+5057	            "SIGNAL_ALLOW_ALL_USERS", "EMAIL_ALLOW_ALL_USERS",
+5058	            "SMS_ALLOW_ALL_USERS", "MATTERMOST_ALLOW_ALL_USERS",
+5059	            "MATRIX_ALLOW_ALL_USERS", "DINGTALK_ALLOW_ALL_USERS",
+5060	            "FEISHU_ALLOW_ALL_USERS",
+5061	            "WECOM_ALLOW_ALL_USERS",
+5062	            "WECOM_CALLBACK_ALLOW_ALL_USERS",
+5063	            "WEIXIN_ALLOW_ALL_USERS",
+5064	            "BLUEBUBBLES_ALLOW_ALL_USERS",
+5065	            "QQ_ALLOW_ALL_USERS",
+5066	            "YUANBAO_ALLOW_ALL_USERS",
+5067	        )
+5068	        # Also pick up plugin-registered platforms — each entry can declare
+5069	        # its own allowed_users_env / allow_all_env, so the warning stays
+5070	        # accurate as plugins like IRC come online.
+5071	        _plugin_allowed_vars: tuple = ()
+5072	        _plugin_allow_all_vars: tuple = ()
+5073	        try:
+5074	            from gateway.platform_registry import platform_registry
+5075	            _plugin_allowed_vars = tuple(
+5076	                e.allowed_users_env for e in platform_registry.plugin_entries()
+5077	                if e.allowed_users_env
+5078	            )
+5079	            _plugin_allow_all_vars = tuple(
+5080	                e.allow_all_env for e in platform_registry.plugin_entries()
+5081	                if e.allow_all_env
+5082	            )
+5083	        except Exception:
+5084	            pass
+5085	        _any_allowlist = any(
+5086	            os.getenv(v) for v in _builtin_allowed_vars + _plugin_allowed_vars
+5087	        )
+5088	        _allow_all = os.getenv("GATEWAY_ALLOW_ALL_USERS", "").lower() in {"true", "1", "yes"} or any(
+5089	            os.getenv(v, "").lower() in {"true", "1", "yes"}
+5090	            for v in _builtin_allow_all_vars + _plugin_allow_all_vars
+5091	        )
+5092	        if not _any_allowlist and not _allow_all:
+5093	            logger.warning(
+5094	                "No user allowlists configured. All unauthorized users will be denied. "
+5095	                "Set GATEWAY_ALLOW_ALL_USERS=true in ~/.hermes/.env to allow open access, "
+5096	                "or configure platform allowlists (e.g., TELEGRAM_ALLOWED_USERS=your_id)."
+5097	            )
+5098	        
+5099	        # Discover Python plugins before shell hooks so plugin block
+5100	        # decisions take precedence in tie cases.  The CLI startup path
+5101	        # does this via an explicit call in hermes_cli/main.py; the
+5102	        # gateway lazily imports run_agent inside per-request handlers,
+5103	        # so the discover_plugins() side-effect in model_tools.py is NOT
+5104	        # guaranteed to have run by the time we reach this point.
+5105	        try:
+5106	            from hermes_cli.plugins import discover_plugins
+5107	            discover_plugins()
+5108	        except Exception:
+5109	            logger.warning(
+5110	                "plugin discovery failed at gateway startup", exc_info=True,
+5111	            )
+5112	
+5113	        # Register the generic relay adapter when a connector relay URL is
+5114	        # configured (GATEWAY_RELAY_URL / gateway.relay_url). No URL -> no-op, so
+5115	        # direct/single-tenant deployments are unaffected. When configured, the
+5116	        # adapter dials the connector over a WebSocket, negotiates its capability
+5117	        # descriptor at handshake, and bridges inbound/outbound like any platform.
+5118	        try:
+5119	            from gateway.relay import (
+5120	                register_relay_adapter,
+5121	                relay_url,
+5122	                self_provision_relay,
+5123	            )
+5124	
+5125	            # Boot-time relay self-provision: resolve the agent's NAS token ->
+5126	            # POST /relay/provision -> set GATEWAY_RELAY_* in os.environ BEFORE
+5127	            # registration reads them. No-op when relay is unconfigured, a secret
+5128	            # is already pinned, or no NAS token resolves (self-hosted, unenrolled).
+5129	            # Never raises.
+5130	            self_provision_relay()
+5131	
+5132	            if register_relay_adapter():
+5133	                logger.info("relay adapter registered (connector at %s)", relay_url())
+5134	        except Exception:
+5135	            logger.warning(
+5136	                "relay adapter registration failed at gateway startup", exc_info=True,
+5137	            )
+5138	
+5139	        # Register declarative shell hooks from cli-config.yaml.  Gateway
+5140	        # has no TTY, so consent has to come from one of the three opt-in
+5141	        # channels (--accept-hooks on launch, HERMES_ACCEPT_HOOKS env var,
+5142	        # or hooks_auto_accept: true in config.yaml).  We pass
+5143	        # accept_hooks=False here and let register_from_config resolve
+5144	        # the effective value from env + config itself — the CLI-side
+5145	        # registration already honored --accept-hooks, and re-reading
+5146	        # hooks_auto_accept here would just duplicate that lookup.
+5147	        # Failures are logged but must never block gateway startup.
+5148	        try:
+5149	            from hermes_cli.config import load_config
+5150	            from agent.shell_hooks import register_from_config
+5151	            register_from_config(load_config(), accept_hooks=False)
+5152	        except Exception:
+5153	            logger.debug(
+5154	                "shell-hook registration failed at gateway startup",
+5155	                exc_info=True,
+5156	            )
+5157	
+5158	        # Discover and load event hooks
+5159	        self.hooks.discover_and_load()
+5160	
+5161	        
+5162	        # Recover background processes from checkpoint (crash recovery)
+5163	        try:
+5164	            from tools.process_registry import process_registry
+5165	            recovered = process_registry.recover_from_checkpoint()
+5166	            if recovered:
+5167	                logger.info("Recovered %s background process(es) from previous run", recovered)
+5168	        except Exception as e:
+5169	            logger.warning("Process checkpoint recovery: %s", e)
+5170	
+5171	        # Suspend sessions that were active when the gateway last exited.
+5172	        # This prevents stuck sessions from being blindly resumed on restart,
+5173	        # which can create an unrecoverable loop (#7536).  Suspended sessions
+5174	        # auto-reset on the next incoming message, giving the user a clean start.
+5175	        #
+5176	        # SKIP suspension after a clean (graceful) shutdown — the previous
+5177	        # process already drained active agents, so sessions aren't stuck.
+5178	        # This prevents unwanted auto-resets after `hermes update`,
+5179	        # `hermes gateway restart`, or `/restart`.
+5180	        _clean_marker = _hermes_home / ".clean_shutdown"
+5181	        if _clean_marker.exists():
+5182	            logger.info("Previous gateway exited cleanly — skipping session suspension")
+5183	            try:
+5184	                _clean_marker.unlink()
+5185	            except Exception:
+5186	                pass
+5187	        else:
+5188	            try:
+5189	                suspended = self.session_store.suspend_recently_active()
+5190	                if suspended:
+5191	                    logger.info("Marked %d in-flight session(s) as resumable from previous run", suspended)
+5192	            except Exception as e:
+5193	                logger.warning("Session suspension on startup failed: %s", e)
+5194	
+5195	        # Stuck-loop detection (#7536): if a session has been active across
+5196	        # 3+ consecutive restarts, it's probably stuck in a loop (the same
+5197	        # history keeps causing the agent to hang).  Auto-suspend it so the
+5198	        # user gets a clean slate on the next message.
+5199	        try:
+5200	            stuck = self._suspend_stuck_loop_sessions()
+5201	            if stuck:
+5202	                logger.warning("Auto-suspended %d stuck-loop session(s)", stuck)
+5203	        except Exception as e:
+5204	            logger.debug("Stuck-loop detection failed: %s", e)
+5205	
+5206	        # Serialize startup restore against inbound dispatch.  Platform
+5207	        # adapters can begin receiving messages as soon as they connect, but
+5208	        # restart-interrupted sessions are not auto-resumed until all startup
+5209	        # wiring below completes.  Queue inbound messages until the resume
+5210	        # pass runs and every synthetic resume turn has finished.
+5211	        self._startup_restore_in_progress = True
+5212	        self._startup_restore_queue = []
+5213	        self._startup_restore_tasks = []
+5214	
+5215	        connected_count = 0
+5216	        enabled_platform_count = 0
+5217	        startup_nonretryable_errors: list[str] = []
+5218	        startup_retryable_errors: list[str] = []
+5219	        
+5220	        # Initialize and connect each configured platform
+5221	        for platform, platform_config in self.config.platforms.items():
+5222	            if not platform_config.enabled:
+5223	                continue
+5224	            enabled_platform_count += 1
+5225	            
+5226	            adapter = self._create_adapter(platform, platform_config)
+5227	            if not adapter:
+5228	                # Distinguish between missing builtin deps and missing plugin
+5229	                _pval = platform.value
+5230	                _builtin_names = {m.value for m in Platform.__members__.values()}
+5231	                if _pval not in _builtin_names:
+5232	                    logger.warning(
+5233	                        "No adapter for '%s' — is the plugin installed? "
+5234	                        "(platform is enabled in config.yaml but no plugin registered it)",
+5235	                        _pval,
+5236	                    )
+5237	                else:
+5238	                    logger.warning("No adapter available for %s", _pval)
+5239	                continue
+5240	            
+5241	            # Set up message + fatal error handlers
+5242	            adapter.set_message_handler(self._handle_message)
+5243	            adapter.set_fatal_error_handler(self._handle_adapter_fatal_error)
+5244	            adapter.set_session_store(self.session_store)
+5245	            adapter.set_busy_session_handler(self._handle_active_session_busy_message)
+5246	            adapter.set_topic_recovery_fn(self._recover_telegram_topic_thread_id)
+5247	            adapter._busy_text_mode = self._busy_text_mode
+5248	            
+5249	            # Try to connect
+5250	            logger.info("Connecting to %s...", platform.value)
+5251	            self._update_platform_runtime_status(
+5252	                platform.value,
+5253	                platform_state="connecting",
+5254	                error_code=None,
+5255	                error_message=None,
+5256	            )
+5257	            try:
+5258	                success = await self._connect_adapter_with_timeout(adapter, platform)
+5259	                if success:
+5260	                    self.adapters[platform] = adapter
+5261	                    self._sync_voice_mode_state_to_adapter(adapter)
+5262	                    connected_count += 1
+5263	                    self._update_platform_runtime_status(
+5264	                        platform.value,
+5265	                        platform_state="connected",
+5266	                        error_code=None,
+5267	                        error_message=None,
+5268	                    )
+5269	                    logger.info("✓ %s connected", platform.value)
+5270	                else:
+5271	                    logger.warning("✗ %s failed to connect", platform.value)
+5272	                    # Defensive cleanup: a failed connect() may have
+5273	                    # allocated resources (aiohttp.ClientSession, poll
+5274	                    # tasks, bridge subprocesses) before giving up.
+5275	                    # Without this call, those resources are orphaned
+5276	                    # and Python logs "Unclosed client session" at
+5277	                    # process exit. Adapter disconnect() implementations
+5278	                    # are expected to be idempotent and tolerate
+5279	                    # partial-init state.
+5280	                    await self._safe_adapter_disconnect(adapter, platform)
+5281	                    if adapter.has_fatal_error:
+5282	                        self._update_platform_runtime_status(
+5283	                            platform.value,
+5284	                            platform_state="retrying" if adapter.fatal_error_retryable else "fatal",
+5285	                            error_code=adapter.fatal_error_code,
+5286	                            error_message=adapter.fatal_error_message,
+5287	                        )
+5288	                        target = (
+5289	                            startup_retryable_errors
+5290	                            if adapter.fatal_error_retryable
+5291	                            else startup_nonretryable_errors
+5292	                        )
+5293	                        target.append(
+5294	                            f"{platform.value}: {adapter.fatal_error_message}"
+5295	                        )
+5296	                        # Queue for reconnection if the error is retryable
+5297	                        if adapter.fatal_error_retryable:
+5298	                            self._failed_platforms[platform] = {
+5299	                                "config": platform_config,
+5300	                                "attempts": 1,
+5301	                                "next_retry": time.monotonic() + 30,
+5302	                            }
+5303	                    else:
+5304	                        self._update_platform_runtime_status(
+5305	                            platform.value,
+5306	                            platform_state="retrying",
+5307	                            error_code=None,
+5308	                            error_message="failed to connect",
+5309	                        )
+5310	                        startup_retryable_errors.append(
+5311	                            f"{platform.value}: failed to connect"
+5312	                        )
+5313	                        # No fatal error info means likely a transient issue — queue for retry
+5314	                        self._failed_platforms[platform] = {
+5315	                            "config": platform_config,
+5316	                            "attempts": 1,
+5317	                            "next_retry": time.monotonic() + 30,
+5318	                        }
+5319	            except Exception as e:
+5320	                logger.error("✗ %s error: %s", platform.value, e)
+5321	                # Same defensive cleanup path for exceptions — an adapter
+5322	                # that raised mid-connect may still have a live
+5323	                # aiohttp.ClientSession or child subprocess.
+5324	                await self._safe_adapter_disconnect(adapter, platform)
+5325	                self._update_platform_runtime_status(
+5326	                    platform.value,
+5327	                    platform_state="retrying",
+5328	                    error_code=None,
+5329	                    error_message=str(e),
+5330	                )
+5331	                startup_retryable_errors.append(f"{platform.value}: {e}")
+5332	                # Unexpected exceptions are typically transient — queue for retry
+5333	                self._failed_platforms[platform] = {
+5334	                    "config": platform_config,
+5335	                    "attempts": 1,
+5336	                    "next_retry": time.monotonic() + 30,
+
+... (output truncated to budget; the source above is complete and verbatim — treat it as already Read. For any area not covered, run another codegraph_explore with the specific names — do NOT Read these files.)
+
+### how does a user turn move through context building, model streaming, tool execution, approval, and persistence?
+
+## Dynamic-dispatch links among your symbols
+(synthesized — the indirect hops grep/Read would reconstruct; the `@file:line` is the wiring site)
+
+- DirectiveContent → DirectiveImage   [dynamic: renders <DirectiveImage>]
+- DirectiveImage → DirectiveChip   [dynamic: renders <DirectiveChip>]
+- DirectiveImage → ZoomableImage   [dynamic: renders <ZoomableImage>]
+- MessageLine → StreamingMd   [dynamic: renders <StreamingMd>]
+- StreamingMd → Box   [dynamic: renders <Box>]
+
+> Full source for these symbols is below — the call flow among them, followed by their bodies.
+## Exploration: how does a user turn move through context building, model streaming, tool execution, approval, and persistence?
+
+Found 105 symbols across 39 files.
+
+### Blast radius — what depends on these (update/verify before editing)
+
+- `TurnContext` (agent/turn_context.py:38) — 2 callers in `agent/turn_context.py`; tests: `tests/agent/test_turn_context.py`
+- `stream` (agent/tts_provider.py:219) — 5 callers in `agent/chat_completion_helpers.py`, `agent/gemini_cloudcode_adapter.py`, `agent/gemini_native_adapter.py`, `gateway/platforms/signal.py` +1 more; ⚠️ no covering tests found
+- `build` (gateway/platforms/yuanbao.py:3199) — 35 callers in `gateway/platforms/feishu.py`, `gateway/platforms/feishu_comment.py`, `gateway/platforms/telegram.py`, `gateway/platforms/yuanbao.py` +4 more; tests: `tests/test_yuanbao_pipeline.py`
+
+### Relationships
+
+**instantiates:**
+- build_turn_context → TurnContext
+
+**calls:**
+- _call_anthropic → stream
+- run_conversation → estimate_request_tokens_rough
+- build_turn_context → estimate_request_tokens_rough
+- _call_anthropic → sanitize_anthropic_kwargs
+- _probe_bot_sdk → _build_onboard_client
+- build_turn_context → set_current_write_origin
+- _call → _call_anthropic
+- _call_anthropic → _fire_first_delta
+- run_conversation → _invoke_hook
+- build_turn_context → _invoke_hook
+- ... and 88 more
+
+**extends:**
+- _FakeProvider → TTSProvider
+- Incomplete → TTSProvider
+- Incomplete → TTSProvider
+- _FakeTTSProvider → TTSProvider
+- _FakeTTSProvider → TTSProvider
+
+**references:**
+- run_conversation → set_current_write_origin
+- run_conversation → set_session_context
+
+### Source Code
+
+> The code below is the **verbatim, current on-disk source** of these files — re-read from disk on this call and line-numbered, byte-for-byte identical to what the Read tool returns. It is NOT a summary, outline, or stale cache. Treat each block as a Read you have already performed: do not Read a file shown here.
+
+#### ui-tui/src/domain/roles.ts — user(function), tool(function)
+
+```typescript
+1	import type { Theme } from '../theme.js'
+2	import type { Role } from '../types.js'
+3	
+4	export const ROLE: Record<Role, (t: Theme) => { body: string; glyph: string; prefix: string }> = {
+5	  assistant: t => ({ body: t.color.text, glyph: t.brand.tool, prefix: t.color.border }),
+6	  system: t => ({ body: '', glyph: '·', prefix: t.color.muted }),
+7	  tool: t => ({ body: t.color.muted, glyph: '⚡', prefix: t.color.muted }),
+8	  user: t => ({ body: t.color.label, glyph: t.brand.prompt, prefix: t.color.label })
+9	}
+```
+
+#### ui-tui/src/components/thinking.tsx — TOOL(constant)
+
+```tsx
+39	} from '../types.js'
+40	
+41	const THINK: BrailleSpinnerName[] = ['helix', 'breathe', 'orbit', 'dna', 'waverows', 'snake', 'pulse']
+42	const TOOL: BrailleSpinnerName[] = ['cascade', 'scan', 'diagswipe', 'fillsweep', 'rain', 'columns', 'sparkle']
+43	
+44	const fmtElapsed = (ms: number) => {
+45	  const sec = Math.max(0, ms) / 1000
+```
+
+#### web/src/contexts/profile-context.ts — ProfileContextValue(interface)
+
+```typescript
+1	import { createContext } from "react";
+2	
+3	export interface ProfileContextValue {
+4	  /** Profile every management surface reads/writes ("" = the dashboard
+5	   *  process's own profile). */
+6	  profile: string;
+7	  /** The profile the dashboard process itself runs under. */
+8	  currentProfile: string;
+9	  /** Known profile names (includes "default"). */
+10	  profiles: string[];
+11	  setProfile: (name: string) => void;
+12	}
+13	
+14	export const ProfileContext = createContext<ProfileContextValue>({
+15	  profile: "",
+16	  currentProfile: "default",
+17	  profiles: [],
+18	  setProfile: () => {},
+19	});
+```
+
+#### apps/desktop/src/store/prompts.ts — approval(constant)
+
+```typescript
+1	import { atom, computed, type ReadableAtom } from 'nanostores'
+2	
+3	import { $activeSessionId } from './session'
+4	
+5	// Blocking interactive prompts the gateway raises mid-turn. Each maps to a
+6	// `*.request` event the Python side emits while it blocks the agent thread
+7	// waiting for a `*.respond` RPC. Without a renderer for these, the agent
+8	// silently stalls until its timeout (default 5 min) and the tool is BLOCKED.
+9	//
+10	// Like clarify, every prompt is parked under the runtime session id that raised
+11	// it (not one shared slot), so a *background* session running concurrently can
+12	// raise an approval/sudo/secret prompt and have it wait — surfaced via the
+13	// sidebar "needs input" badge — until the user switches to that chat. The
+14	// exported $*Request view is scoped to the active session, so a background
+15	// prompt never hijacks the foreground.
+16	
+17	const keyFor = (sessionId: string | null | undefined): string => sessionId ?? ''
+18	
+19	interface KeyedPrompt {
+20	  sessionId: string | null
+21	}
+22	
+23	interface PromptStore<T extends KeyedPrompt> {
+24	  $active: ReadableAtom<null | T>
+25	  clear: (sessionId?: string | null, requestId?: string) => void
+26	  reset: () => void
+27	  set: (request: T) => void
+28	}
+29	
+30	// One per-session prompt kind: a map keyed by session, plus an active-session
+31	// view for the overlays. `clear` drops one session's entry (a request-id
+32	// mismatch is a no-op so a stale resolve can't wipe a newer prompt); with no
+33	// session hint it drops every entry, optionally filtered by request id.
+34	function keyedPromptStore<T extends KeyedPrompt>(): PromptStore<T> {
+35	  const $all = atom<Record<string, T>>({})
+36	  const idOf = (value: T): string | undefined => (value as { requestId?: string }).requestId
+37	
+38	  return {
+39	    $active: computed([$all, $activeSessionId], (all, activeId) => all[keyFor(activeId)] ?? null),
+40	    reset: () => $all.set({}),
+41	    set: request => $all.set({ ...$all.get(), [keyFor(request.sessionId)]: request }),
+42	    clear(sessionId, requestId) {
+43	      const all = $all.get()
+44	
+45	      if (sessionId !== undefined) {
+46	        const key = keyFor(sessionId)
+47	        const current = all[key]
+48	
+49	        if (current && !(requestId && idOf(current) !== requestId)) {
+50	          const next = { ...all }
+51	          delete next[key]
+52	          $all.set(next)
+53	        }
+54	
+55	        return
+56	      }
+57	
+58	      const next = Object.fromEntries(Object.entries(all).filter(([, v]) => requestId && idOf(v) !== requestId))
+59	
+60	      if (Object.keys(next).length !== Object.keys(all).length) {
+61	        $all.set(next as Record<string, T>)
+62	      }
+63	    }
+64	  }
+65	}
+66	
+67	// Approval is session-keyed on the backend (one in-flight approval per session,
+68	// resolved via approval.respond {choice, session_id}). It carries no request_id,
+69	// unlike sudo/secret which are _block()-style request/response.
+70	export interface ApprovalRequest extends KeyedPrompt {
+71	  // false when the backend won't honor a permanent allow (tirith warning) → hide "Always allow".
+72	  allowPermanent?: boolean
+73	  command: string
+74	  description: string
+75	}
+76	
+77	export interface SudoRequest extends KeyedPrompt {
+78	  requestId: string
+79	}
+80	
+81	export interface SecretRequest extends KeyedPrompt {
+82	  envVar: string
+83	  prompt: string
+84	  requestId: string
+85	}
+86	
+87	const approval = keyedPromptStore<ApprovalRequest>()
+88	const sudo = keyedPromptStore<SudoRequest>()
+89	const secret = keyedPromptStore<SecretRequest>()
+90	
+91	export const $approvalRequest = approval.$active
+92	export const setApprovalRequest = approval.set
+93	export const clearApprovalRequest = approval.clear
+94	
+95	export const $sudoRequest = sudo.$active
+96	export const setSudoRequest = sudo.set
+97	export const clearSudoRequest = sudo.clear
+98	
+99	export const $secretRequest = secret.$active
+100	export const setSecretRequest = secret.set
+101	export const clearSecretRequest = secret.clear
+102	
+103	// Drop in-flight prompts for `sessionId` (a turn ended) across all three kinds —
+104	// or every parked prompt when no session is given (global reset / tests).
+105	export function clearAllPrompts(sessionId?: string | null): void {
+106	  if (sessionId === undefined) {
+107	    approval.reset()
+108	    sudo.reset()
+109	    secret.reset()
+110	
+111	    return
+112	  }
+113	
+114	  approval.clear(sessionId)
+115	  sudo.clear(sessionId)
+116	  secret.clear(sessionId)
+117	}
+```
+
+#### agent/turn_context.py — _emit_status(calls), reset(calls), estimate_request_tokens_rough(calls), should_compress(calls), TurnContext(class), build_turn_context(function), _ensure_db_session(calls), set_runtime_main(calls), set_session_context(calls), set_current_write_origin(calls), +16 more
+
+```python
+35	
+36	
+37	@dataclass
+38	class TurnContext:
+39	    """Values produced by the turn prologue and consumed by the turn loop."""
+40	
+41	    # Sanitized inbound message (surrogates stripped).
+42	    user_message: str
+43	    # Clean message preserved for transcripts / memory queries (no nudge injection).
+44	    original_user_message: Any
+45	    # Working message list for this turn (loop appends to it).
+46	    messages: List[Dict[str, Any]]
+47	    # May be reset to None by preflight compression (new session created).
+48	    conversation_history: Optional[List[Dict[str, Any]]]
+49	    # Cached system prompt active for this turn (may be rebuilt by compression).
+50	    active_system_prompt: Optional[str]
+51	    # Task / turn identifiers.
+52	    effective_task_id: str
+53	    turn_id: str
+54	    # Index of the current user turn within ``messages``.
+55	    current_turn_user_idx: int
+56	    # Whether the post-turn memory review should fire.
+57	    should_review_memory: bool = False
+58	    # Context contributed by ``pre_llm_call`` plugins (appended to user message).
+59	    plugin_user_context: str = ""
+60	    # External-memory prefetch result, reused across loop iterations.
+61	    ext_prefetch_cache: str = ""
+62	
+63	
+64	def build_turn_context(
+65	    agent,
+66	    user_message: str,
+67	    system_message: Optional[str],
+68	    conversation_history: Optional[List[Dict[str, Any]]],
+69	    task_id: Optional[str],
+70	    stream_callback,
+71	    persist_user_message: Optional[str],
+72	    persist_user_timestamp: Optional[float] = None,
+73	    *,
+74	    restore_or_build_system_prompt,
+75	    install_safe_stdio,
+76	    sanitize_surrogates,
+77	    summarize_user_message_for_log,
+78	    set_session_context,
+79	    set_current_write_origin,
+80	    ra,
+81	) -> TurnContext:
+82	    """Run the once-per-turn setup and return the loop's input context.
+83	
+84	    The callables/helpers the original prologue referenced from the
+85	    ``conversation_loop`` module are passed in explicitly to keep this module
+86	    free of an import cycle with ``agent.conversation_loop``.
+87	    """
+88	    # Guard stdio against OSError from broken pipes (systemd/headless/daemon).
+89	    install_safe_stdio()
+90	
+91	    agent._ensure_db_session()
+92	
+93	    # Tell auxiliary_client what the live main provider/model are for this turn.
+94	    try:
+95	        from agent.auxiliary_client import set_runtime_main
+96	        set_runtime_main(
+97	            getattr(agent, "provider", "") or "",
+98	            getattr(agent, "model", "") or "",
+99	            base_url=getattr(agent, "base_url", "") or "",
+100	            api_key=getattr(agent, "api_key", "") or "",
+101	            api_mode=getattr(agent, "api_mode", "") or "",
+102	        )
+103	    except Exception:
+104	        pass
+105	
+106	    # Tag log records on this thread with the session ID for ``hermes logs``.
+107	    set_session_context(agent.session_id)
+108	
+109	    # Bind the skill write-origin ContextVar for this thread.
+110	    set_current_write_origin(getattr(agent, "_memory_write_origin", "assistant_tool"))
+111	
+112	    # Restore the primary runtime if the previous turn activated fallback.
+113	    agent._restore_primary_runtime()
+114	
+115	    # Sanitize surrogate characters from user input.
+116	    if isinstance(user_message, str):
+117	        user_message = sanitize_surrogates(user_message)
+118	    if isinstance(persist_user_message, str):
+119	        persist_user_message = sanitize_surrogates(persist_user_message)
+120	
+121	    # Store stream callback for _interruptible_api_call to pick up.
+122	    agent._stream_callback = stream_callback
+123	    agent._persist_user_message_idx = None
+124	    agent._persist_user_message_override = persist_user_message
+125	    agent._persist_user_message_timestamp = persist_user_timestamp
+126	    # Generate unique task_id if not provided to isolate VMs between tasks.
+127	    effective_task_id = task_id or str(uuid.uuid4())
+128	    agent._current_task_id = effective_task_id
+129	    turn_id = f"{agent.session_id or 'session'}:{effective_task_id}:{uuid.uuid4().hex[:8]}"
+130	    agent._current_turn_id = turn_id
+131	    agent._current_api_request_id = ""
+132	
+133	    # Reset retry counters and iteration budget at the start of each turn.
+134	    agent._invalid_tool_retries = 0
+135	    agent._invalid_json_retries = 0
+136	    agent._empty_content_retries = 0
+137	    agent._incomplete_scratchpad_retries = 0
+138	    agent._codex_incomplete_retries = 0
+139	    agent._thinking_prefill_retries = 0
+140	    agent._post_tool_empty_retried = False
+141	    agent._last_content_with_tools = None
+142	    agent._last_content_tools_all_housekeeping = False
+143	    agent._mute_post_response = False
+144	    agent._unicode_sanitization_passes = 0
+145	    agent._tool_guardrails.reset_for_turn()
+146	    agent._tool_guardrail_halt_decision = None
+147	    agent._vision_supported = True
+148	
+149	    # Pre-turn connection health check: clean up dead TCP connections.
+150	    if agent.api_mode != "anthropic_messages":
+151	        try:
+152	            if agent._cleanup_dead_connections():
+153	                agent._emit_status(
+154	                    "🔌 Detected stale connections from a previous provider "
+155	                    "issue — cleaned up automatically. Proceeding with fresh "
+156	                    "connection."
+157	                )
+158	        except Exception:
+159	            pass
+160	    # Replay compression warning through status_callback for gateway platforms.
+161	    if agent._compression_warning:
+162	        agent._replay_compression_warning()
+163	        agent._compression_warning = None  # send once
+164	
+165	    # NOTE: _turns_since_memory and _iters_since_skill are NOT reset here.
+166	    agent.iteration_budget = IterationBudget(agent.max_iterations)
+167	
+168	    # Log conversation turn start for debugging/observability.
+169	    _preview_text = summarize_user_message_for_log(user_message)
+170	    _msg_preview = (_preview_text[:80] + "...") if len(_preview_text) > 80 else _preview_text
+171	    _msg_preview = _msg_preview.replace("\n", " ")
+172	    logger.info(
+173	        "conversation turn: session=%s model=%s provider=%s platform=%s history=%d msg=%r",
+174	        agent.session_id or "none", agent.model, agent.provider or "unknown",
+175	        agent.platform or "unknown", len(conversation_history or []),
+176	        _msg_preview,
+177	    )
+178	
+179	    # Initialize conversation (copy to avoid mutating the caller's list).
+180	    messages = list(conversation_history) if conversation_history else []
+181	
+182	    # Hydrate todo store from conversation history.
+183	    if conversation_history and not agent._todo_store.has_items():
+184	        agent._hydrate_todo_store(conversation_history)
+185	
+186	    # Hydrate per-session nudge counters from persisted history (issue #22357).
+187	    if conversation_history and agent._user_turn_count == 0:
+188	        prior_user_turns = sum(
+189	            1 for m in conversation_history if m.get("role") == "user"
+190	        )
+191	        if prior_user_turns > 0:
+192	            agent._user_turn_count = prior_user_turns
+193	            if agent._memory_nudge_interval > 0 and agent._turns_since_memory == 0:
+194	                agent._turns_since_memory = prior_user_turns % agent._memory_nudge_interval
+195	
+196	    # Track user turns for memory flush and periodic nudge logic.
+197	    agent._user_turn_count += 1
+198	
+199	    # Reset the streaming context scrubber at the top of each turn.
+200	    scrubber = getattr(agent, "_stream_context_scrubber", None)
+201	    if scrubber is not None:
+202	        scrubber.reset()
+203	    # Reset the think scrubber for the same reason.
+204	    think_scrubber = getattr(agent, "_stream_think_scrubber", None)
+205	    if think_scrubber is not None:
+206	        think_scrubber.reset()
+207	
+208	    # Preserve the original user message (no nudge injection).
+209	    original_user_message = persist_user_message if persist_user_message is not None else user_message
+210	
+211	    # Track memory nudge trigger (turn-based, checked here).
+212	    should_review_memory = False
+213	    if (agent._memory_nudge_interval > 0
+214	            and "memory" in agent.valid_tool_names
+215	            and agent._memory_store):
+216	        agent._turns_since_memory += 1
+217	        if agent._turns_since_memory >= agent._memory_nudge_interval:
+218	            should_review_memory = True
+219	            agent._turns_since_memory = 0
+220	
+221	    # Add user message.
+222	    user_msg = {"role": "user", "content": user_message}
+223	    messages.append(user_msg)
+224	    current_turn_user_idx = len(messages) - 1
+225	    agent._persist_user_message_idx = current_turn_user_idx
+226	
+227	    if not agent.quiet_mode:
+228	        _print_preview = summarize_user_message_for_log(user_message)
+229	        agent._safe_print(
+230	            f"💬 Starting conversation: '{_print_preview[:60]}"
+231	            f"{'...' if len(_print_preview) > 60 else ''}'"
+232	        )
+233	
+234	    # ── System prompt (cached per session for prefix caching) ──
+235	    if agent._cached_system_prompt is None:
+236	        restore_or_build_system_prompt(agent, system_message, conversation_history)
+237	
+238	    active_system_prompt = agent._cached_system_prompt
+239	
+240	    # Crash-resilience: persist the inbound user turn as soon as the session row exists.
+241	    try:
+242	        agent._persist_session(messages, conversation_history)
+243	    except Exception:
+244	        logger.warning(
+245	            "Early turn-start session persistence failed for session=%s",
+246	            agent.session_id or "none",
+247	            exc_info=True,
+248	        )
+249	
+250	    # ── Preflight context compression ──
+251	    if (
+252	        agent.compression_enabled
+253	        and len(messages) > agent.context_compressor.protect_first_n
+254	                            + agent.context_compressor.protect_last_n + 1
+255	    ):
+256	        _preflight_tokens = estimate_request_tokens_rough(
+257	            messages,
+258	            system_prompt=active_system_prompt or "",
+259	            tools=agent.tools or None,
+260	        )
+261	        _compressor = agent.context_compressor
+262	        _defer_preflight = getattr(
+263	            _compressor,
+264	            "should_defer_preflight_to_real_usage",
+265	            lambda _tokens: False,
+266	        )
+267	        _preflight_deferred = _defer_preflight(_preflight_tokens)
+268	
+269	        if not _preflight_deferred:
+270	            _last = _compressor.last_prompt_tokens
+271	            # Do NOT overwrite the -1 sentinel (#36718).
+272	            if _last >= 0 and _preflight_tokens > _last:
+273	                _compressor.last_prompt_tokens = _preflight_tokens
+274	
+275	        if _preflight_deferred:
+276	            logger.info(
+277	                "Skipping preflight compression: rough estimate ~%s >= %s, "
+278	                "but last real provider prompt was %s after compression",
+279	                f"{_preflight_tokens:,}",
+280	                f"{_compressor.threshold_tokens:,}",
+281	                f"{_compressor.last_real_prompt_tokens:,}",
+282	            )
+283	        elif _compressor.should_compress(_preflight_tokens):
+284	            logger.info(
+285	                "Preflight compression: ~%s tokens >= %s threshold (model %s, ctx %s)",
+286	                f"{_preflight_tokens:,}",
+287	                f"{_compressor.threshold_tokens:,}",
+288	                agent.model,
+289	                f"{_compressor.context_length:,}",
+290	            )
+291	            agent._emit_status(
+292	                f"📦 Preflight compression: ~{_preflight_tokens:,} tokens "
+293	                f">= {_compressor.threshold_tokens:,} threshold. "
+294	                "This may take a moment."
+295	            )
+296	            for _pass in range(3):
+297	                _orig_len = len(messages)
+298	                messages, active_system_prompt = agent._compress_context(
+299	                    messages, system_message, approx_tokens=_preflight_tokens,
+300	                    task_id=effective_task_id,
+301	                )
+302	                if len(messages) >= _orig_len:
+303	                    break  # Cannot compress further
+304	                conversation_history = None
+305	                agent._empty_content_retries = 0
+306	                agent._thinking_prefill_retries = 0
+307	                agent._last_content_with_tools = None
+308	                agent._last_content_tools_all_housekeeping = False
+309	                agent._mute_post_response = False
+310	                _preflight_tokens = estimate_request_tokens_rough(
+311	                    messages,
+312	                    system_prompt=active_system_prompt or "",
+313	                    tools=agent.tools or None,
+314	                )
+315	                if not _compressor.should_compress(_preflight_tokens):
+316	                    break
+317	
+318	    # Plugin hook: pre_llm_call (context injected into user message, not system prompt).
+319	    plugin_user_context = ""
+320	    try:
+321	        from hermes_cli.plugins import invoke_hook as _invoke_hook
+322	        _pre_results = _invoke_hook(
+323	            "pre_llm_call",
+324	            session_id=agent.session_id,
+325	            task_id=effective_task_id,
+326	            turn_id=turn_id,
+327	            user_message=original_user_message,
+328	            conversation_history=list(messages),
+329	            is_first_turn=(not bool(conversation_history)),
+330	            model=agent.model,
+331	            platform=getattr(agent, "platform", None) or "",
+332	            sender_id=getattr(agent, "_user_id", None) or "",
+333	        )
+334	        _ctx_parts: list[str] = []
+335	        for r in _pre_results:
+336	            if isinstance(r, dict) and r.get("context"):
+337	                _ctx_parts.append(str(r["context"]))
+338	            elif isinstance(r, str) and r.strip():
+339	                _ctx_parts.append(r)
+340	        if _ctx_parts:
+341	            plugin_user_context = "\n\n".join(_ctx_parts)
+342	    except Exception as exc:
+343	        logger.warning("pre_llm_call hook failed: %s", exc)
+344	
+345	    # Per-turn file-mutation verifier state.
+346	    agent._turn_failed_file_mutations = {}
+347	
+348	    # Record the execution thread so interrupt()/clear_interrupt() can scope
+349	    # the tool-level interrupt signal to THIS agent's thread only.
+350	    agent._execution_thread_id = threading.current_thread().ident
+351	
+352	    # Clear stale per-thread interrupt state, preserving a pending interrupt.
+353	    ra()._set_interrupt(False, agent._execution_thread_id)
+354	    if agent._interrupt_requested:
+355	        ra()._set_interrupt(True, agent._execution_thread_id)
+356	        agent._interrupt_thread_signal_pending = False
+357	    else:
+358	        agent._interrupt_message = None
+359	        agent._interrupt_thread_signal_pending = False
+360	
+361	    # Notify memory providers of the new turn (BEFORE prefetch_all).
+362	    if agent._memory_manager:
+363	        try:
+364	            _turn_msg = original_user_message if isinstance(original_user_message, str) else ""
+365	            agent._memory_manager.on_turn_start(agent._user_turn_count, _turn_msg)
+366	        except Exception:
+367	            pass
+368	
+369	    # External memory provider: prefetch once before the tool loop.
+370	    ext_prefetch_cache = ""
+371	    if agent._memory_manager:
+372	        try:
+373	            _query = original_user_message if isinstance(original_user_message, str) else ""
+374	            ext_prefetch_cache = agent._memory_manager.prefetch_all(_query) or ""
+375	        except Exception:
+376	            pass
+377	
+378	    return TurnContext(
+379	        user_message=user_message,
+380	        original_user_message=original_user_message,
+381	        messages=messages,
+382	        conversation_history=conversation_history,
+
+... (output truncated to budget; the source above is complete and verbatim — treat it as already Read. For any area not covered, run another codegraph_explore with the specific names — do NOT Read these files.)

@@ -1,0 +1,38 @@
+# Layer Analysis Run
+
+## Target
+
+- Repository: `XiaomiMiMo/MiMo-Code`
+- Repository URL: https://github.com/XiaomiMiMo/MiMo-Code
+- Source path: `work/external-repos/xiaomimimo__mimo-code`
+- Physical source path: `/Users/potablepotato/HansolProduct/potato-project/theAgent/work/external-repos/xiaomimimo__mimo-code`
+- Layer: `L01-intent-intake`
+- Layer definition: Normalize user input into a system-understandable request, command, message, or task.
+- Commit: `3edb90454a7d0f02844463c7b409595edfafba46`
+
+## Commands
+
+- Script: `scripts/analyze-layer.sh XiaomiMiMo/MiMo-Code L01 --source-path work/external-repos/xiaomimimo__mimo-code --skip-graphify`
+
+## Tool Versions
+
+- CodeGraph: `1.0.1`
+- Graphify CLI: `graphify 0.8.13`
+
+## Tool Runs
+
+- CodeGraph: `work/analysis/xiaomimimo__mimo-code/L01-intent-intake/codegraph-results.txt`
+- Graphify: not run
+
+## Outputs
+
+- Candidate files: `work/analysis/xiaomimimo__mimo-code/L01-intent-intake/candidate-files.md`
+- Search queries: `work/analysis/xiaomimimo__mimo-code/L01-intent-intake/queries.md`
+- ripgrep matches: `work/analysis/xiaomimimo__mimo-code/L01-intent-intake/rg-matches.txt`
+- CodeGraph results: `work/analysis/xiaomimimo__mimo-code/L01-intent-intake/codegraph-results.txt`
+- Graphify results: `work/analysis/xiaomimimo__mimo-code/L01-intent-intake/graphify-results.txt`
+- Draft: `work/analysis/xiaomimimo__mimo-code/L01-intent-intake/layer-draft.md`
+
+## Evidence Rule
+
+Graph outputs are discovery aids only. Final evidence must cite actual files, symbols, source cards, or official upstream URLs.

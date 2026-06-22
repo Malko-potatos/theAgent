@@ -1,0 +1,3 @@
+# Graphify Query Results
+
+Graphify was not run because `--skip-graphify` was passed.

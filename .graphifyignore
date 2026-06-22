@@ -1,0 +1,11 @@
+.git/
+.codegraph/
+graphify-out/cache/
+work/external-repos/
+work/analysis/
+outputs/
+runs/
+node_modules/
+dist/
+target/
+*.generated.*

@@ -1,0 +1,130 @@
+./log.md:36:- Added `P00-agent-loop-orchestrator` as a first-class observation axis for time-ordered agent-loop analysis.
+./AGENTS.md:53:- Agent loop: planning, model call, tool call, result ingestion, stop condition.
+./AGENTS.md:59:- Event model: text delta, reasoning delta when exposed, tool call, tool result, permission request, error, abort, compaction, persistence.
+./AGENTS.md:60:- Transcript/session persistence: append-only event log, replay, resume, fork, export, debugging.
+./AGENTS.md:140:- Agent loop structure.
+./AGENTS.md:143:- Tool calling 방식.
+./AGENTS.md:176:2. Should the agent loop consume a transcript, event log, conversation object, or derived context view?
+./AGENTS.md:182:8. What minimum event log can replay, debug, resume, and reproduce a test?
+./AGENTS.md:183:9. How do abort, timeout, provider error, validation error, denied permission, and tool failure differ?
+./AGENTS.md:185:11. How should multi-agent execution be represented without corrupting a simple single-agent loop?
+./AGENTS.md:194:- Agent state machine.
+./AGENTS.md:199:- Tool call validation.
+./AGENTS.md:201:- Tool execution orchestration contract.
+./AGENTS.md:204:- Abort and timeout semantics.
+./AGENTS.md:229:Provider adapters translate between canonical runtime types and provider-specific APIs. They must not contain the agent loop.
+./AGENTS.md:231:- Keep provider adapter and agent loop separate.
+./AGENTS.md:232:- Use capability descriptors: tool calling, parallel tool calls, image input, JSON mode, reasoning config, prompt caching, streaming, stop reasons, context size, output limits.
+./AGENTS.md:234:- Normalize tool calls into typed `ToolCallRequested` records with stable IDs.
+./AGENTS.md:292:Events should cover session, turn, user message, provider request, text delta, reasoning delta when exposed and allowed, tool call, tool validation, permission, tool execution, context transform, compaction, persistence, error, and abort.
+./AGENTS.md:303:- Resume a session.
+./AGENTS.md:304:- Fork from a previous turn.
+./AGENTS.md:322:- Agent loop tests with fake provider scripts.
+./AGENTS.md:323:- Tool loop tests with fake tools that return success, structured error, timeout, stream progress, and abort.
+./AGENTS.md:329:- Failure tests for denied permission, invalid tool args, provider interruption, malformed tool call, and partial stream abort.
+./AGENTS.md:356:- Separate provider adapter from agent loop.
+./AGENTS.md:361:- Treat streaming output, tool call, tool result, error, and abort as observable events.
+./AGENTS.md:404:2. Start with `P00-agent-loop-orchestrator` when the goal is to design an agent from scratch.
+./AGENTS.md:410:`P00` is not a component layer. It is the time-ordered observation axis for the agent-loop/orchestrator: turn/session start, context build, model call, tool-call cycle, approval, persistence, stop condition, abort, retry, resume, fork, and replay.
+./AGENTS.md:418:3. Deterministic Loop Prototype: fake provider, fake tool, permission policy, event append, replay를 포함한 작은 runtime prototype을 만든다.
+./AGENTS.md:419:4. Minimal Harness: CLI 또는 headless runner부터 만들고, permission protocol과 session JSONL resume을 검증한다.
+./templates/layer-analysis.md:30:- If this is `P00-agent-loop-orchestrator`, treat it as a time-ordered observation axis, not a component layer.
+./templates/layer-analysis.md:31:- P00 should identify how L01-L12 are composed during a turn, where the loop starts/stops, and where trajectory events are appended.
+./templates/layer-analysis.md:53:- Agent loop:
+./templates/layer-analysis.md:56:- Tool calling:
+./05_agent/runbooks/update-note.md:45:- Do not turn interpretation into confirmed fact without a source link.
+./docs/harness/code-analysis-automation.md:68:`P00-agent-loop-orchestrator` is not a component layer. It is the time-ordered observation axis that shows how the layers are composed during one or more agent turns.
+./docs/harness/code-analysis-automation.md:74:- Where is the main agent loop, turn loop, or orchestration state machine implemented?
+./docs/harness/code-analysis-automation.md:75:- How does one user turn move through context building, model streaming, tool execution, approval, persistence, and stop conditions?
+./docs/harness/code-analysis-automation.md:76:- Where are abort, retry, resume, fork, replay, or event append handled?
+./docs/harness/code-analysis-automation.md:107:1. Start with `P00-agent-loop-orchestrator` when the goal is runtime design from scratch.
+./docs/harness/code-analysis-automation.md:117:## Stop Conditions
+./docs/harness/policy.md:81:1. User instruction in the current turn.
+./docs/harness/operating-model.md:14:Each Codex turn follows a bounded loop:
+./scripts/analyze-layer.sh:52:    P00|p00) printf 'P00-agent-loop-orchestrator' ;;
+./scripts/analyze-layer.sh:71:    P00-agent-loop-orchestrator)
+./scripts/analyze-layer.sh:73:where is the main agent loop, turn loop, or orchestration state machine implemented?
+./scripts/analyze-layer.sh:74:turn start model call tool call loop stop condition abort resume retry event append
+./scripts/analyze-layer.sh:75:how does a user turn move through context building, model streaming, tool execution, approval, and persistence?
+./scripts/analyze-layer.sh:94:model client provider adapter authentication retry stream completion request
+./scripts/analyze-layer.sh:99:where are tool calls, command syntax, schemas, function calls, or model actions parsed and validated?
+./scripts/analyze-layer.sh:100:tool call schema grammar command validation function call parser
+./scripts/analyze-layer.sh:124:trajectory transcript session history checkpoint event log replay resume
+./scripts/analyze-layer.sh:162:    P00-agent-loop-orchestrator) printf 'agent loop|orchestrator|orchestration|turn|run loop|state machine|model call|tool call|stop condition|abort|resume|retry|event append' ;;
+./scripts/analyze-layer.sh:165:    L03-model-client) printf 'model|provider|client|auth|retry|stream|completion|request' ;;
+./scripts/analyze-layer.sh:166:    L04-action-grammar) printf 'tool call|schema|grammar|command|validation|function call|parser' ;;
+./scripts/analyze-layer.sh:170:    L08-trajectory) printf 'trajectory|transcript|session|history|checkpoint|event log|replay|resume' ;;
+./scripts/analyze-layer.sh:181:    P00-agent-loop-orchestrator) printf 'Observation axis for the time-ordered agent loop: turn/session start, context build, model call, tool-call cycle, approval, persistence, stop, abort, retry, resume, and replay touchpoints.' ;;
+./scripts/analyze-layer.sh:185:    L04-action-grammar) printf 'Validate the grammar and schema of model-requested actions or tool calls before execution.' ;;
+./docs/harness/strategy.md:18:Book 2 compares Claude Code and Codex as two different placements of order. Claude Code leans toward runtime discipline: query loop, tool orchestration, interrupts, compaction, and recovery. Codex leans toward explicit control layers: instruction fragments, tool schemas, approval policy, thread, rollout, state, hooks, and managed skills.
+./docs/harness/strategy.md:22:This folder is not building a full runtime. It is a local operating contract for Codex runs. Therefore the control layer must be expressed as files Codex can read every turn:
+./docs/harness/strategy.md:26:- `templates/` turns reusable habits into repeatable task definitions.
+./docs/harness/strategy.md:37:2. State as handoff: `runs/` records what happened, what changed, and how to resume.
+./docs/harness/strategy.md:50:The practical rule is simple: write down what must persist, handle locally what only matters during the current turn, and never let either category pretend to be the other.
+./docs/harness/research-charter.md:30:- Agent loop: planning, model call, tool call, result ingestion, stop condition
+./docs/harness/research-charter.md:36:- Event model: text delta, thought/reasoning delta when exposed, tool call, tool result, permission request, error, abort, compaction, persistence
+./docs/harness/research-charter.md:37:- Transcript/session persistence: append-only event log, replay, resume, fork, export, debugging
+./docs/harness/research-charter.md:127:- Auto-commit behavior belongs in a harness or workflow policy, not the agent loop.
+./docs/harness/research-charter.md:142:- Its CLI supports TUI and headless modes, session resume/fork/title, `/compact`, `@` context references, and MCP management.
+./docs/harness/research-charter.md:193:- Multi-agent task boards should be studied as harness orchestration first; only promote sub-agent behavior into core when the runtime contract demands it.
+./docs/harness/research-charter.md:210:- Modes and roles should not become hard-coded branches in the agent loop. Prefer runtime configuration, system prompt layers, tool sets, and permission profiles.
+./docs/harness/research-charter.md:249:- Agent loop structure
+./docs/harness/research-charter.md:252:- Tool calling 방식
+./docs/harness/research-charter.md:283:| Agent loop structure | | | |
+./docs/harness/research-charter.md:286:| Tool calling 방식 | | | |
+./docs/harness/research-charter.md:311:1. What is the smallest provider-neutral message model that can represent user messages, assistant text, tool calls, tool results, images/files, reasoning metadata when available, and errors?
+./docs/harness/research-charter.md:312:2. Should the agent loop consume a transcript, an event log, a conversation object, or a derived context view?
+./docs/harness/research-charter.md:318:8. What is the minimum event log that can replay a session, debug a failure, resume a conversation, and reproduce a test?
+./docs/harness/research-charter.md:319:9. How do abort, timeout, provider error, validation error, denied permission, and tool failure differ in the event model?
+./docs/harness/research-charter.md:320:10. How can fake provider scripts and fake tools make the agent loop deterministic?
+./docs/harness/research-charter.md:321:11. How should multi-agent or sub-agent execution be represented without corrupting a simple single-agent loop?
+./docs/harness/research-charter.md:330:- Agent state machine
+./docs/harness/research-charter.md:335:- Tool call validation
+./docs/harness/research-charter.md:337:- Tool execution orchestration contract
+./docs/harness/research-charter.md:340:- Abort and timeout semantics
+./docs/harness/research-charter.md:365:Provider adapters translate between this repo's canonical runtime types and provider-specific APIs. They must not contain the agent loop.
+./docs/harness/research-charter.md:369:- Keep provider adapter and agent loop separate.
+./docs/harness/research-charter.md:370:- Use capability descriptors: supports tool calling, parallel tool calls, image input, JSON mode, reasoning config, prompt caching, streaming, stop reasons, max context, max output.
+./docs/harness/research-charter.md:372:- Normalize tool calls into typed `ToolCallRequested` records with stable IDs.
+./docs/harness/research-charter.md:386:  stream(request: ProviderRequest, signal: AbortSignal): AsyncIterable<ProviderEvent>;
+./docs/harness/research-charter.md:387:  complete?(request: ProviderRequest, signal: AbortSignal): Promise<ProviderMessage>;
+./docs/harness/research-charter.md:411:1. Model requests tool call.
+./docs/harness/research-charter.md:418:8. Executor emits structured result, structured error, timeout, or abort.
+./docs/harness/research-charter.md:420:10. Agent loop decides whether to continue, stop, or ask for human steering.
+./docs/harness/research-charter.md:473:- Turn started/ended
+./docs/harness/research-charter.md:478:- Provider tool call delta
+./docs/harness/research-charter.md:480:- Tool call requested
+./docs/harness/research-charter.md:481:- Tool call validation failed
+./docs/harness/research-charter.md:488:- Abort requested/completed
+./docs/harness/research-charter.md:505:- Resume a session.
+./docs/harness/research-charter.md:506:- Fork from a previous turn.
+./docs/harness/research-charter.md:540:- Agent loop tests with fake provider scripts.
+./docs/harness/research-charter.md:541:- Tool loop tests with fake tools that return success, structured error, timeout, stream progress, and abort.
+./docs/harness/research-charter.md:547:- Failure tests for denied permission, invalid tool args, provider interruption, malformed tool call, and partial stream abort.
+./docs/harness/research-charter.md:561:  { event: "stop", reason: "end_turn" },
+./docs/harness/research-charter.md:611:- Separate provider adapter from agent loop.
+./docs/harness/research-charter.md:616:- Treat streaming output, tool call, tool result, error, and abort as observable events.
+./docs/harness/research-charter.md:618:- Use fake provider and fake tool implementations to test the agent loop deterministically.
+./docs/harness/research-charter.md:677:- Validate a fake tool call.
+./docs/harness/research-charter.md:695:- Resume from event log.
+./docs/harness/research-charter.md:709:Only after this milestone should the repo consider broader UX work, IDE integration, multi-agent orchestration, or remote agent server design.
+./docs/research/layers/README.md:16:- [P00-agent-loop-orchestrator.md](P00-agent-loop-orchestrator.md): time-ordered runtime skeleton that composes the layers across one or more turns. It covers turn/session start, context build, model call, tool-call cycle, approval, persistence, stop condition, abort, retry, resume, fork, and replay touchpoints.
+./docs/research/layers/README.md:25:- `L04-action-grammar.md`: validate model-requested actions, tool calls, command syntax, and schemas.
+./docs/research/layers/P00-agent-loop-orchestrator.md:3:title: P00 Agent Loop Orchestrator
+./docs/research/layers/P00-agent-loop-orchestrator.md:4:description: Observation-axis note for the time-ordered coding-agent loop across open-source references.
+./docs/research/layers/P00-agent-loop-orchestrator.md:5:tags: [research/layers, axis/p00, topic/agent-loop, topic/orchestrator]
+./docs/research/layers/P00-agent-loop-orchestrator.md:10:# P00 agent-loop-orchestrator
+./docs/research/layers/P00-agent-loop-orchestrator.md:15:- 포함되는 것: turn/session start, loop/state machine, context build trigger, model call, tool-call cycle, approval handoff, tool execution handoff, trajectory append, stop condition, abort, retry, resume, fork, replay.
+./docs/research/layers/P00-agent-loop-orchestrator.md:17:- L01-L12와의 관계: P00는 레이어가 아니라 관찰 축이다. L01-L12가 한 turn 안에서 어떤 순서와 event 경계로 조립되는지 본다.
+./docs/research/layers/P00-agent-loop-orchestrator.md:22:  - agent loop, orchestrator, orchestration, turn, run loop, state machine
+./docs/research/layers/P00-agent-loop-orchestrator.md:23:  - model call, tool call, stop condition, abort, resume, retry, event append
+./docs/research/layers/P00-agent-loop-orchestrator.md:28:  - abort/retry/resume/fork 처리 위치
+./docs/research/layers/P00-agent-loop-orchestrator.md:44:| XiaomiMiMo/MiMo-Code | TODO | TODO | TODO | TODO | low | Which package owns primary-agent loop orchestration? |
+./docs/research/layers/P00-agent-loop-orchestrator.md:45:| MoonshotAI/kimi-cli | TODO | TODO | TODO | TODO | low | Where does shell/TUI input hand off to the agent turn loop? |
+./docs/research/layers/P00-agent-loop-orchestrator.md:57:- P00 vs L01: L01 is raw input normalization; P00 observes where that normalized input enters a turn loop.
+./docs/research/layers/P00-agent-loop-orchestrator.md:60:- P00 vs L04/L05/L06: these own action validation, tool execution, and approval; P00 observes their sequence and retry/continue semantics.
+./docs/research/layers/P00-agent-loop-orchestrator.md:69:  - What is the replayable source of truth for one turn?
+./01_sources/open-source/github/xiaomimimo__mimo-code/2026-06-19/source-card.md:42:- The README describes intelligent context management, task tracking, subagents, a goal/stop condition judged by an independent judge model, and compose mode for specs-driven development.
+./02_normalized/open-source/wquguru__harness-books/summary.md:58:Checklists and templates are the local institution layer. They preserve repeatable practice beyond a single agent turn.
+./02_normalized/open-source/wquguru__harness-books/summary.md:65:- `templates/` turns recurring task intake and reporting into reusable rules.
+./01_sources/open-source/github/wquguru__harness-books/2026-06-19/source-card.md:51:- Use templates and checklists to turn personal habits into reusable team rules.

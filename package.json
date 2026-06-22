@@ -1,0 +1,14 @@
+{
+  "name": "the-agent",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local agent runtime contract spike for P00 agent loop research.",
+  "scripts": {
+    "test": "node --test --experimental-strip-types tests/*.test.ts",
+    "smoke": "node --experimental-strip-types src/cli/main.ts \"hello from p00\""
+  },
+  "engines": {
+    "node": ">=26"
+  }
+}

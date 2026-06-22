@@ -1,0 +1,1667 @@
+# CodeGraph Results
+
+Generated: 2026-06-19T12:35:55+09:00
+
+Note: CodeGraph may create or update `.codegraph/` inside the source checkout.
+
+┌  Initializing CodeGraph
+│
+▲  Already initialized in /Users/potablepotato/HansolProduct/potato-project/theAgent/work/external-repos/openai__codex
+│
+●  Use "codegraph index" to re-index or "codegraph sync" to update
+│
+└  
+
+[1m
+CodeGraph Status
+[0m
+[36mProject:[0m /Users/potablepotato/HansolProduct/potato-project/theAgent/work/external-repos/openai__codex
+
+[1mIndex Statistics:[0m
+  Files:     3,112
+  Nodes:     99,608
+  Edges:     391,991
+  DB Size:   261.69 MB
+  Backend:   [32mnode:sqlite — built-in (full WAL)[0m
+  Journal:   [32mwal[0m
+
+[1mNodes by Kind:[0m
+  import          42,580
+  function        24,263
+  method          12,702
+  enum_member     4,851
+  struct          4,146
+  variable        3,263
+  file            3,059
+  property        1,473
+  enum            1,304
+  type_alias      935
+  class           857
+  trait           119
+  constant        56
+
+[1mFiles by Language:[0m
+  rust            2,320
+  typescript      603
+  python          127
+  yaml            53
+  javascript      6
+  xml             2
+  c               1
+
+[32m✓[0m Index is up to date
+
+
+## Explore Queries
+
+
+### where is the main agent loop, turn loop, or orchestration state machine implemented?
+
+## Dynamic-dispatch links among your symbols
+(synthesized — the indirect hops grep/Read would reconstruct; the `@file:line` is the wiring site)
+
+- source_label → source_label   [dynamic: interface → impl @codex-rs/core/src/config/network_proxy_spec.rs:70]
+
+> Full source for these symbols is below — the call flow among them, followed by their bodies.
+## Exploration: where is the main agent loop, turn loop, or orchestration state machine implemented?
+
+Found 208 symbols across 67 files.
+
+### Blast radius — what depends on these (update/verify before editing)
+
+- `AgentJob` (codex-rs/state/src/model/agent_job.rs:75) — 6 callers in `codex-rs/state/src/model/mod.rs`, `codex-rs/core/src/tools/handlers/agent_jobs.rs`, `codex-rs/state/src/runtime/agent_jobs.rs`; ⚠️ no covering tests found
+- `AgentJobRow` (codex-rs/state/src/model/agent_job.rs:143) — 2 callers in `codex-rs/state/src/model/mod.rs`, `codex-rs/state/src/model/agent_job.rs`; ⚠️ no covering tests found
+- `AgentJobItem` (codex-rs/state/src/model/agent_job.rs:95) — 7 callers in `codex-rs/state/src/model/mod.rs`, `codex-rs/core/src/tools/handlers/agent_jobs.rs`, `codex-rs/state/src/runtime/agent_jobs.rs`; ⚠️ no covering tests found
+- `TurnState` (codex-rs/core/src/state/turn.rs:87) — 9 callers in `codex-rs/core/src/state/mod.rs`, `codex-rs/core/src/session/inject.rs`, `codex-rs/core/src/session/input_queue.rs`, `codex-rs/core/src/session/mod.rs`; ⚠️ no covering tests found
+- `CollabAgentState` (codex-rs/app-server-protocol/schema/typescript/v2/CollabAgentState.ts:6) — 3 callers in `codex-rs/app-server-protocol/schema/typescript/v2/ThreadItem.ts`, `codex-rs/app-server-protocol/schema/typescript/v2/index.ts`; ⚠️ no covering tests found
+
+### Relationships
+
+**references:**
+- export_job_csv_snapshot → AgentJob
+- build_worker_prompt → AgentJob
+- try_from → AgentJobRow
+- build_worker_prompt → AgentJobItem
+- started_at_from_item → AgentJobItem
+- is_item_stale → AgentJobItem
+- render_job_csv → AgentJobItem
+- CollabAgentState → CollabAgentStatus
+- ThreadItem → CollabAgentState
+- update_once → UpdateLoopControl
+- ... and 62 more
+
+**calls:**
+- try_from → map
+- update_once → install_latest_standalone
+- update_once → from_environment
+- apply_bespoke_event_handling → guardian_auto_approval_review_notification
+- item_event_to_server_notification → convert_patch_changes
+- from → convert_patch_changes
+- import_plugins → record_plugin_import_errors
+- annotate_object → annotate_variant_list
+- connect_remote_control_websocket → prepare_remote_control_enrollment
+- apply_bespoke_event_handling → maybe_emit_hook_prompt_item_completed
+- ... and 298 more
+
+**instantiates:**
+- contribute → SkillsTurnState
+
+### Source Code
+
+> The code below is the **verbatim, current on-disk source** of these files — re-read from disk on this call and line-numbered, byte-for-byte identical to what the Read tool returns. It is NOT a summary, outline, or stale cache. Treat each block as a Read you have already performed: do not Read a file shown here.
+
+#### sdk/python/src/openai_codex/api.py — calls(calls), instantiates(instantiates), turn(method)
+
+```python
+571	            stream.close()
+572	
+573	    # BEGIN GENERATED: Thread.flat_methods
+574	    def turn(
+575	        self,
+576	        input: RunInput,
+577	        *,
+578	        approval_mode: ApprovalMode | None = None,
+579	        cwd: str | None = None,
+580	        effort: ReasoningEffort | None = None,
+581	        model: str | None = None,
+582	        output_schema: JsonObject | None = None,
+583	        personality: Personality | None = None,
+584	        sandbox: Sandbox | None = None,
+585	        service_tier: str | None = None,
+586	        summary: ReasoningSummary | None = None,
+587	    ) -> TurnHandle:
+588	        """Start a turn and return a handle for streaming or control."""
+589	        wire_input = _to_wire_input(_normalize_run_input(input))
+590	        approval_policy, approvals_reviewer = _approval_mode_override_settings(approval_mode)
+591	        params = TurnStartParams(
+592	            thread_id=self.id,
+593	            input=wire_input,
+594	            approval_policy=approval_policy,
+595	            approvals_reviewer=approvals_reviewer,
+596	            cwd=cwd,
+597	            effort=effort,
+598	            model=model,
+599	            output_schema=output_schema,
+600	            personality=personality,
+601	            sandbox_policy=_sandbox_policy(sandbox),
+602	            service_tier=service_tier,
+603	            summary=summary,
+604	        )
+605	        turn = self._client.turn_start(self.id, wire_input, params=params)
+606	        return TurnHandle(self._client, self.id, turn.turn.id)
+607	
+608	    # END GENERATED: Thread.flat_methods
+609	
+
+... (gap) ...
+
+659	            await stream.aclose()
+660	
+661	    # BEGIN GENERATED: AsyncThread.flat_methods
+662	    async def turn(
+663	        self,
+664	        input: RunInput,
+665	        *,
+666	        approval_mode: ApprovalMode | None = None,
+667	        cwd: str | None = None,
+668	        effort: ReasoningEffort | None = None,
+669	        model: str | None = None,
+670	        output_schema: JsonObject | None = None,
+671	        personality: Personality | None = None,
+672	        sandbox: Sandbox | None = None,
+673	        service_tier: str | None = None,
+674	        summary: ReasoningSummary | None = None,
+675	    ) -> AsyncTurnHandle:
+676	        """Start a turn and return a handle for streaming or control."""
+677	        await self._codex._ensure_initialized()
+678	        wire_input = _to_wire_input(_normalize_run_input(input))
+679	        approval_policy, approvals_reviewer = _approval_mode_override_settings(approval_mode)
+680	        params = TurnStartParams(
+681	            thread_id=self.id,
+682	            input=wire_input,
+683	            approval_policy=approval_policy,
+684	            approvals_reviewer=approvals_reviewer,
+685	            cwd=cwd,
+686	            effort=effort,
+687	            model=model,
+688	            output_schema=output_schema,
+689	            personality=personality,
+690	            sandbox_policy=_sandbox_policy(sandbox),
+691	            service_tier=service_tier,
+692	            summary=summary,
+693	        )
+694	        turn = await self._codex._client.turn_start(
+695	            self.id,
+696	            wire_input,
+697	            params=params,
+698	        )
+699	        return AsyncTurnHandle(self._codex, self.id, turn.turn.id)
+700	
+701	    # END GENERATED: AsyncThread.flat_methods
+702	
+```
+
+#### codex-rs/analytics/src/reducer.rs — calls(calls), references(references), instantiates(instantiates), map(calls), clone(calls), turn(method), ingest_initialize(method), ingest_app_mentioned(method), emit_thread_initialized(method), web_search_query_count(function)
+
+```rust
+237	        }
+238	    }
+239	
+240	    fn turn(thread_id: &'a str, turn_id: &'a str) -> Self {
+241	        Self {
+242	            event_name: "turn",
+243	            thread_id,
+244	            turn_id: Some(turn_id),
+245	            review_id: None,
+246	            item_id: None,
+247	        }
+248	    }
+249	}
+250	
+251	enum MissingAnalyticsContext {
+
+... (gap) ...
+
+533	        }
+534	    }
+535	
+536	    fn ingest_initialize(
+537	        &mut self,
+538	        connection_id: u64,
+539	        params: InitializeParams,
+540	        product_client_id: String,
+541	        runtime: CodexRuntimeMetadata,
+542	        rpc_transport: AppServerRpcTransport,
+543	    ) {
+544	        self.connections.insert(
+545	            connection_id,
+546	            ConnectionState {
+547	                app_server_client: CodexAppServerClientMetadata {
+548	                    product_client_id,
+549	                    client_name: Some(params.client_info.name),
+550	                    client_version: Some(params.client_info.version),
+551	                    rpc_transport,
+552	                    experimental_api_enabled: params
+553	                        .capabilities
+554	                        .map(|capabilities| capabilities.experimental_api),
+555	                },
+556	                runtime,
+557	            },
+558	        );
+559	    }
+560	
+561	    fn ingest_subagent_thread_started(
+562	        &mut self,
+
+... (gap) ...
+
+739	        }
+740	    }
+741	
+742	    fn ingest_app_mentioned(&mut self, input: AppMentionedInput, out: &mut Vec<TrackEventRequest>) {
+743	        let AppMentionedInput { tracking, mentions } = input;
+744	        out.extend(mentions.into_iter().map(|mention| {
+745	            let event_params = codex_app_metadata(&tracking, mention);
+746	            TrackEventRequest::AppMentioned(CodexAppMentionedEventRequest {
+747	                event_type: "codex_app_mentioned",
+748	                event_params,
+749	            })
+750	        }));
+751	    }
+752	
+753	    fn ingest_app_used(&mut self, input: AppUsedInput, out: &mut Vec<TrackEventRequest>) {
+754	        let AppUsedInput { tracking, app } = input;
+
+... (gap) ...
+
+1290	        }
+1291	    }
+1292	
+1293	    fn emit_thread_initialized(
+1294	        &mut self,
+1295	        connection_id: u64,
+1296	        thread: codex_app_server_protocol::Thread,
+1297	        model: String,
+1298	        initialization_mode: ThreadInitializationMode,
+1299	        out: &mut Vec<TrackEventRequest>,
+1300	    ) {
+1301	        let session_source: SessionSource = thread.source.into();
+1302	        let session_id = thread.session_id;
+1303	        let thread_id = thread.id;
+1304	        let parent_thread_id = thread.parent_thread_id;
+1305	        let forked_from_thread_id = thread.forked_from_id;
+1306	        let Some(connection_state) = self.connections.get(&connection_id) else {
+1307	            return;
+1308	        };
+1309	        let thread_metadata = ThreadMetadataState::from_thread_metadata(
+1310	            session_id.clone(),
+1311	            &session_source,
+1312	            thread.thread_source.map(Into::into),
+1313	            parent_thread_id,
+1314	            initialization_mode,
+1315	        );
+1316	        self.threads.insert(
+1317	            thread_id.clone(),
+1318	            ThreadAnalyticsState {
+1319	                connection_id: Some(connection_id),
+1320	                metadata: Some(thread_metadata.clone()),
+1321	            },
+1322	        );
+1323	        out.push(TrackEventRequest::ThreadInitialized(
+1324	            ThreadInitializedEvent {
+1325	                event_type: "codex_thread_initialized",
+1326	                event_params: ThreadInitializedEventParams {
+1327	                    thread_id,
+1328	                    session_id,
+1329	                    app_server_client: connection_state.app_server_client.clone(),
+1330	                    runtime: connection_state.runtime.clone(),
+1331	                    model,
+1332	                    ephemeral: thread.ephemeral,
+1333	                    thread_source: thread_metadata.thread_source,
+1334	                    initialization_mode,
+1335	                    subagent_source: thread_metadata.subagent_source.clone(),
+1336	                    parent_thread_id: thread_metadata.parent_thread_id,
+1337	                    forked_from_thread_id,
+1338	                    created_at: u64::try_from(thread.created_at).unwrap_or_default(),
+1339	                },
+1340	            },
+1341	        ));
+1342	    }
+1343	
+1344	    fn ingest_compaction(&mut self, input: CodexCompactionEvent, out: &mut Vec<TrackEventRequest>) {
+1345	        let Some((connection_state, thread_metadata)) =
+
+... (gap) ...
+
+2472	    }
+2473	}
+2474	
+2475	fn web_search_query_count(query: &str, action: Option<&WebSearchAction>) -> Option<u64> {
+2476	    match action {
+2477	        Some(WebSearchAction::Search { query, queries }) => queries
+2478	            .as_ref()
+2479	            .map(|queries| usize_to_u64(queries.len()))
+2480	            .or_else(|| query.as_ref().map(|_| 1)),
+2481	        Some(WebSearchAction::OpenPage { .. })
+2482	        | Some(WebSearchAction::FindInPage { .. })
+2483	        | Some(WebSearchAction::Other) => None,
+2484	        None => (!query.trim().is_empty()).then_some(1),
+2485	    }
+2486	}
+2487	
+2488	fn accepted_line_event_input(
+2489	    turn_id: &str,
+```
+
+#### codex-rs/windows-sandbox-rs/sandbox_smoketests.py — calls(calls), main(function)
+
+```python
+214	    print("=" * 72)
+215	    return 0 if ok == total else 1
+216	
+217	def main() -> int:
+218	    results: List[CaseResult] = []
+219	    make_dir_clean(WS_ROOT)
+220	    OUTSIDE.mkdir(exist_ok=True)
+221	    EXTRA_ROOT.mkdir(exist_ok=True)
+222	    # Environment probe: some hosts allow TEMP writes even under read-only
+223	    # tokens due to ACLs and restricted SID semantics. Detect and adapt tests.
+224	    probe_rc, _, _ = run_sbx(
+225	        "read-only",
+226	        ["cmd", "/c", "echo probe > %TEMP%\\sbx_ro_probe.txt"],
+227	        WS_ROOT,
+228	    )
+229	    ro_temp_denied = probe_rc != 0
+230	
+231	    def add(name: str, ok: bool, detail: str = ""):
+232	        print('running', name)
+233	        results.append(CaseResult(name, ok, detail))
+234	
+235	    # 1. RO: deny write in CWD
+236	    target = WS_ROOT / "ro_should_fail.txt"
+237	    remove_if_exists(target)
+238	    rc, out, err = run_sbx("read-only", ["cmd", "/c", "echo nope > ro_should_fail.txt"], WS_ROOT)
+239	    add("RO: write in CWD denied", rc != 0 and assert_not_exists(target), f"rc={rc}, err={err}")
+240	
+241	    # 2. WS: allow write in CWD
+242	    target = WS_ROOT / "ws_ok.txt"
+243	    remove_if_exists(target)
+244	    rc, out, err = run_sbx("workspace-write", ["cmd", "/c", "echo ok > ws_ok.txt"], WS_ROOT)
+245	    add("WS: write in CWD allowed", rc == 0 and assert_exists(target), f"rc={rc}, err={err}")
+246	
+247	    # 3. WS: deny write outside workspace
+248	    outside_file = OUTSIDE / "blocked.txt"
+249	    remove_if_exists(outside_file)
+250	    rc, out, err = run_sbx("workspace-write", ["cmd", "/c", f"echo nope > {outside_file}"], WS_ROOT)
+251	    add("WS: write outside workspace denied", rc != 0 and assert_not_exists(outside_file), f"rc={rc}")
+252	
+253	    # 3b. WS: allow write in additional workspace root
+254	    extra_target = EXTRA_ROOT / "extra_ok.txt"
+255	    remove_if_exists(extra_target)
+256	    rc, out, err = run_sbx(
+257	        "workspace-write",
+258	        ["cmd", "/c", f"echo extra > {extra_target}"],
+259	        WS_ROOT,
+260	        additional_root=EXTRA_ROOT,
+261	    )
+262	    add("WS: write in additional root allowed", rc == 0 and assert_exists(extra_target), f"rc={rc}, err={err}")
+263	
+264	    # 3c. RO: deny write in additional workspace root
+265	    ro_extra_target = EXTRA_ROOT / "extra_ro.txt"
+266	    remove_if_exists(ro_extra_target)
+267	    rc, out, err = run_sbx(
+268	        "read-only",
+269	        ["cmd", "/c", f"echo nope > {ro_extra_target}"],
+270	        WS_ROOT,
+271	        additional_root=EXTRA_ROOT,
+272	    )
+273	    add(
+274	        "RO: write in additional root denied",
+275	        rc != 0 and assert_not_exists(ro_extra_target),
+276	        f"rc={rc}",
+277	    )
+278	
+279	    # 4. WS: allow TEMP write
+280	    rc, out, err = run_sbx("workspace-write", ["cmd", "/c", "echo tempok > %TEMP%\\ws_temp_ok.txt"], WS_ROOT)
+281	    add("WS: TEMP write allowed", rc == 0, f"rc={rc}")
+282	
+283	    # 5. RO: deny TEMP write
+284	    rc, out, err = run_sbx("read-only", ["cmd", "/c", "echo tempno > %TEMP%\\ro_temp_fail.txt"], WS_ROOT)
+285	    if ro_temp_denied:
+286	        add("RO: TEMP write denied", rc != 0, f"rc={rc}")
+287	    else:
+288	        add("RO: TEMP write denied (skipped on this host)", True)
+289	
+290	    # 6. WS: append OK in CWD
+291	    target = WS_ROOT / "append.txt"
+292	    remove_if_exists(target); write_file(target, "line1\n")
+293	    rc, out, err = run_sbx("workspace-write", ["cmd", "/c", "echo line2 >> append.txt"], WS_ROOT)
+294	    add("WS: append allowed", rc == 0 and target.read_text().strip().endswith("line2"), f"rc={rc}")
+295	
+296	    # 7. RO: append denied
+297	    target = WS_ROOT / "ro_append.txt"
+298	    write_file(target, "line1\n")
+299	    rc, out, err = run_sbx("read-only", ["cmd", "/c", "echo line2 >> ro_append.txt"], WS_ROOT)
+300	    add("RO: append denied", rc != 0 and target.read_text() == "line1\n", f"rc={rc}")
+301	
+302	    # 8. WS: PowerShell Set-Content in CWD (OK)
+303	    target = WS_ROOT / "ps_ok.txt"
+304	    remove_if_exists(target)
+305	    rc, out, err = run_sbx("workspace-write",
+306	                           ["powershell", "-NoLogo", "-NoProfile", "-Command",
+307	                            "Set-Content -LiteralPath ps_ok.txt -Value 'hello' -Encoding ASCII"], WS_ROOT)
+308	    add("WS: PowerShell Set-Content allowed", rc == 0 and assert_exists(target), f"rc={rc}, err={err}")
+309	
+310	    # 9. RO: PowerShell Set-Content denied
+311	    target = WS_ROOT / "ps_ro_fail.txt"
+312	    remove_if_exists(target)
+313	    rc, out, err = run_sbx("read-only",
+314	                           ["powershell", "-NoLogo", "-NoProfile", "-Command",
+315	                            "Set-Content -LiteralPath ps_ro_fail.txt -Value 'x'"], WS_ROOT)
+316	    add("RO: PowerShell Set-Content denied", rc != 0 and assert_not_exists(target), f"rc={rc}")
+317	
+318	    # 10. WS: mkdir and write (OK)
+319	    rc, out, err = run_sbx("workspace-write", ["cmd", "/c", "mkdir sub && echo hi > sub\\in_sub.txt"], WS_ROOT)
+320	    add("WS: mkdir+write allowed", rc == 0 and (WS_ROOT / "sub/in_sub.txt").exists(), f"rc={rc}")
+321	
+322	    # 11. WS: rename (EXPECTED SUCCESS on this host)
+323	    rc, out, err = run_sbx("workspace-write", ["cmd", "/c", "echo x > r.txt & ren r.txt r2.txt"], WS_ROOT)
+324	    add("WS: rename succeeds (expected on this host)", rc == 0 and (WS_ROOT / "r2.txt").exists(), f"rc={rc}, err={err}")
+325	
+326	    # 12. WS: delete (EXPECTED SUCCESS on this host)
+327	    target = WS_ROOT / "delme.txt"; write_file(target, "x")
+328	    rc, out, err = run_sbx("workspace-write", ["cmd", "/c", "del /q delme.txt"], WS_ROOT)
+329	    add("WS: delete succeeds (expected on this host)", rc == 0 and not target.exists(), f"rc={rc}, err={err}")
+330	
+331	    # 13. RO: python tries to write (denied)
+332	    pyfile = WS_ROOT / "py_should_fail.txt"; remove_if_exists(pyfile)
+333	    rc, out, err = run_sbx("read-only", ["python", "-c", "open('py_should_fail.txt','w').write('x')"], WS_ROOT)
+334	    add("RO: python file write denied", rc != 0 and assert_not_exists(pyfile), f"rc={rc}")
+335	
+336	    # 14. WS: python writes file (OK)
+337	    pyfile = WS_ROOT / "py_ok.txt"; remove_if_exists(pyfile)
+338	    rc, out, err = run_sbx("workspace-write", ["python", "-c", "open('py_ok.txt','w').write('x')"], WS_ROOT)
+339	    add("WS: python file write allowed", rc == 0 and assert_exists(pyfile), f"rc={rc}, err={err}")
+340	
+341	    # 15. WS: curl network blocked (short timeout)
+342	    rc, out, err = run_sbx("workspace-write", ["curl", "--connect-timeout", "1", "--max-time", "2", "https://example.com"], WS_ROOT)
+343	    add("WS: curl network blocked", rc != 0, f"rc={rc}")
+344	
+345	    # 16. WS: iwr network blocked (HTTP)
+346	    rc, out, err = run_sbx("workspace-write", ["powershell", "-NoLogo", "-NoProfile", "-Command",
+347	                               "try { iwr http://neverssl.com -TimeoutSec 2 } catch { exit 1 }"], WS_ROOT)
+348	    add("WS: iwr network blocked", rc != 0, f"rc={rc}")
+349	
+350	    # 17. WS: direct loopback blocked, proxy loopback allowed via env proxy
+351	    if have("curl"):
+352	        with start_loopback_proxy_fixture() as (target_port, proxy_port):
+353	            proxy_home = WS_ROOT / ".codex_proxy_smoke"
+354	            remove_if_exists(proxy_home)
+355	            proxy_home.mkdir(parents=True, exist_ok=True)
+356	            proxy_url = f"http://127.0.0.1:{proxy_port}"
+357	            proxy_env = {
+358	                "CODEX_HOME": str(proxy_home),
+359	                "HTTP_PROXY": proxy_url,
+360	                "http_proxy": proxy_url,
+361	                "ALL_PROXY": proxy_url,
+362	                "all_proxy": proxy_url,
+363	                "NO_PROXY": "",
+364	                "no_proxy": "",
+365	            }
+366	            proxied_cmd = [
+367	                "curl",
+368	                "--noproxy",
+369	                "",
+370	                "--connect-timeout",
+371	                "2",
+372	                "--max-time",
+373	                "4",
+374	                f"http://127.0.0.1:{target_port}/proxied",
+375	            ]
+376	            rc_proxy, out_proxy, err_proxy = run_sbx(
+377	                "workspace-write",
+378	                proxied_cmd,
+379	                WS_ROOT,
+380	                env_extra=proxy_env,
+381	            )
+382	            add(
+383	                "WS: loopback proxy allowed",
+384	                rc_proxy == 0 and "proxy-ok" in out_proxy,
+385	                f"rc={rc_proxy}, out={out_proxy}, err={err_proxy}",
+386	            )
+387	
+388	            direct_cmd = [
+389	                "curl",
+390	                "--noproxy",
+391	                "*",
+392	                "--connect-timeout",
+393	                "1",
+394	                "--max-time",
+395	                "2",
+396	                f"http://127.0.0.1:{target_port}/direct",
+397	            ]
+398	            rc_direct, _out_direct, err_direct = run_sbx(
+399	                "workspace-write",
+400	                direct_cmd,
+401	                WS_ROOT,
+402	                env_extra={"CODEX_HOME": str(proxy_home)},
+403	            )
+404	            add("WS: direct loopback blocked", rc_direct != 0, f"rc={rc_direct}, err={err_direct}")
+405	    else:
+406	        add("WS: direct/proxy loopback tests (curl missing)", True, "curl not installed")
+407	
+408	    # 18. RO: deny TEMP writes via PowerShell
+409	    rc, out, err = run_sbx("read-only",
+410	                           ["powershell", "-NoLogo", "-NoProfile", "-Command",
+411	                            "Set-Content -LiteralPath $env:TEMP\\ro_tmpfail.txt -Value 'x'"], WS_ROOT)
+412	    if ro_temp_denied:
+413	        add("RO: TEMP write denied (PS)", rc != 0, f"rc={rc}")
+414	    else:
+415	        add("RO: TEMP write denied (PS, skipped)", True)
+416	
+417	    # 19. WS: curl version check — don't rely on stub, just succeed
+418	    if have("curl"):
+419	        rc, out, err = run_sbx("workspace-write", ["cmd", "/c", "curl --version"], WS_ROOT)
+420	        add("WS: curl present (version prints)", rc == 0, f"rc={rc}, err={err}")
+421	    else:
+422	        add("WS: curl present (optional, skipped)", True)
+423	
+424	    # 20. Optional: ripgrep version
+425	    if have("rg"):
+426	        rc, out, err = run_sbx("workspace-write", ["cmd", "/c", "rg --version"], WS_ROOT)
+427	        add("WS: rg --version (optional)", rc == 0, f"rc={rc}, err={err}")
+428	    else:
+429	        add("WS: rg --version (optional, skipped)", True)
+430	
+431	    # 21. Optional: git --version
+432	    if have("git"):
+433	        rc, out, err = run_sbx("workspace-write", ["git", "--version"], WS_ROOT)
+434	        add("WS: git --version (optional)", rc == 0, f"rc={rc}, err={err}")
+435	    else:
+436	        add("WS: git --version (optional, skipped)", True)
+437	
+438	    # 24. WS: PS bytes write (OK)
+439	    rc, out, err = run_sbx("workspace-write",
+440	                           ["powershell", "-NoLogo", "-NoProfile", "-Command",
+441	                            "[IO.File]::WriteAllBytes('bytes_ok.bin',[byte[]](0..255))"], WS_ROOT)
+442	    add("WS: PS bytes write allowed", rc == 0 and (WS_ROOT / "bytes_ok.bin").exists(), f"rc={rc}")
+443	
+444	    # 25. RO: PS bytes write denied
+445	    rc, out, err = run_sbx("read-only",
+446	                           ["powershell", "-NoLogo", "-NoProfile", "-Command",
+447	                            "[IO.File]::WriteAllBytes('bytes_fail.bin',[byte[]](0..10))"], WS_ROOT)
+448	    add("RO: PS bytes write denied", rc != 0 and not (WS_ROOT / "bytes_fail.bin").exists(), f"rc={rc}")
+449	
+450	    # 26. WS: deep mkdir and write (OK)
+451	    rc, out, err = run_sbx("workspace-write",
+452	                           ["cmd", "/c", "mkdir deep\\nest && echo ok > deep\\nest\\f.txt"], WS_ROOT)
+453	    add("WS: deep mkdir+write allowed", rc == 0 and (WS_ROOT / "deep/nest/f.txt").exists(), f"rc={rc}")
+454	
+455	    # 27. WS: move (EXPECTED SUCCESS on this host)
+456	    rc, out, err = run_sbx("workspace-write",
+457	                           ["cmd", "/c", "echo x > m1.txt & move /y m1.txt m2.txt"], WS_ROOT)
+458	    add("WS: move succeeds (expected on this host)", rc == 0 and (WS_ROOT / "m2.txt").exists(), f"rc={rc}, err={err}")
+459	
+460	    # 28. RO: cmd redirection denied
+461	    target = WS_ROOT / "cmd_ro.txt"; remove_if_exists(target)
+462	    rc, out, err = run_sbx("read-only", ["cmd", "/c", "echo nope > cmd_ro.txt"], WS_ROOT)
+463	    add("RO: cmd redirection denied", rc != 0 and not target.exists(), f"rc={rc}")
+464	
+465	    # 29. WS: CWD junction poisoning denied (allowlist should not follow to OUTSIDE)
+466	    poison_cwd = WS_ROOT / "poison_cwd"
+467	    if make_junction(poison_cwd, OUTSIDE):
+468	        target = OUTSIDE / "poisoned.txt"
+469	        remove_if_exists(target)
+470	        rc, out, err = run_sbx("workspace-write", ["cmd", "/c", "echo poison > poisoned.txt"], poison_cwd)
+
+... (output truncated to budget; the source above is complete and verbatim — treat it as already Read. For any area not covered, run another codegraph_explore with the specific names — do NOT Read these files.)
+
+### turn start model call tool call loop stop condition abort resume retry event append
+
+## Exploration: turn start model call tool call loop stop condition abort resume retry event append
+
+Found 193 symbols across 134 files.
+
+### Blast radius — what depends on these (update/verify before editing)
+
+- `ToolCall` (codex-rs/tools/src/tool_call.rs:83) — 1 caller in `codex-rs/tools/src/lib.rs`; ⚠️ no covering tests found
+- `ThreadResumeInitialTurnsPageParams` (codex-rs/app-server-protocol/schema/typescript/v2/ThreadResumeInitialTurnsPageParams.ts:7) — 1 caller in `codex-rs/app-server-protocol/schema/typescript/v2/index.ts`; ⚠️ no covering tests found
+- `ExtensionTurnItem` (codex-rs/tools/src/tool_call.rs:38) — 9 callers in `codex-rs/tools/src/lib.rs`, `codex-rs/core/src/tools/handlers/extension_tools.rs`, `codex-rs/ext/web-search/src/tool.rs`, `codex-rs/tools/src/tool_call.rs`; ⚠️ no covering tests found
+- `McpToolCallError` (codex-rs/app-server-protocol/schema/typescript/v2/McpToolCallError.ts:5) — 3 callers in `codex-rs/app-server-protocol/schema/typescript/v2/ThreadItem.ts`, `codex-rs/app-server-protocol/schema/typescript/v2/index.ts`; ⚠️ no covering tests found
+- `McpToolCallResult` (codex-rs/app-server-protocol/schema/typescript/v2/McpToolCallResult.ts:6) — 3 callers in `codex-rs/app-server-protocol/schema/typescript/v2/ThreadItem.ts`, `codex-rs/app-server-protocol/schema/typescript/v2/index.ts`; ⚠️ no covering tests found
+
+### Relationships
+
+**calls:**
+- fmt → finish
+- maybe_request_mcp_tool_approval → persistent_mcp_tool_approval_key
+- maybe_request_mcp_tool_approval → session_mcp_tool_approval_key
+- persistent_mcp_tool_approval_key → session_mcp_tool_approval_key
+- permission_request_hook_runs_after_remembered_mcp_approval → session_mcp_tool_approval_key
+- web_search_item → web_search_action_detail
+- handle_mcp_tool_call → notify_mcp_tool_call_started
+- notify_mcp_tool_call_skip → notify_mcp_tool_call_started
+- handle_mcp_tool_call → notify_mcp_tool_call_skip
+- handle_call → web_search_item
+- ... and 152 more
+
+**references:**
+- ThreadResumeInitialTurnsPageParams → SortDirection
+- ThreadResumeInitialTurnsPageParams → TurnItemsView
+- ThreadListParams → SortDirection
+- Turn → TurnItemsView
+- ThreadListParams → ThreadSortKey
+- ThreadListParams → ThreadSourceKind
+- ClientRequest → ThreadListParams
+- Turn → ThreadItem
+- Turn → TurnStatus
+- Turn → TurnError
+- ... and 180 more
+
+**instantiates:**
+- handle_mcp_tool_call → HandledMcpToolCall
+- session_mcp_tool_approval_key → McpToolApprovalKey
+- codex_apps_tool_question_without_elicitation_omits_always_allow → McpToolApprovalKey
+- custom_servers_support_session_and_persistent_approval → McpToolApprovalKey
+- codex_apps_connectors_support_persistent_approval → McpToolApprovalKey
+- maybe_persist_mcp_tool_approval_reloads_session_config → McpToolApprovalKey
+
+**implements:**
+- CoreTurnItemEmitter → TurnItemEmitter
+
+### Source Code
+
+> The code below is the **verbatim, current on-disk source** of these files — re-read from disk on this call and line-numbered, byte-for-byte identical to what the Read tool returns. It is NOT a summary, outline, or stale cache. Treat each block as a Read you have already performed: do not Read a file shown here.
+
+#### sdk/python/src/openai_codex/api.py — calls(calls), instantiates(instantiates), turn(method)
+
+```python
+571	            stream.close()
+572	
+573	    # BEGIN GENERATED: Thread.flat_methods
+574	    def turn(
+575	        self,
+576	        input: RunInput,
+577	        *,
+578	        approval_mode: ApprovalMode | None = None,
+579	        cwd: str | None = None,
+580	        effort: ReasoningEffort | None = None,
+581	        model: str | None = None,
+582	        output_schema: JsonObject | None = None,
+583	        personality: Personality | None = None,
+584	        sandbox: Sandbox | None = None,
+585	        service_tier: str | None = None,
+586	        summary: ReasoningSummary | None = None,
+587	    ) -> TurnHandle:
+588	        """Start a turn and return a handle for streaming or control."""
+589	        wire_input = _to_wire_input(_normalize_run_input(input))
+590	        approval_policy, approvals_reviewer = _approval_mode_override_settings(approval_mode)
+591	        params = TurnStartParams(
+592	            thread_id=self.id,
+593	            input=wire_input,
+594	            approval_policy=approval_policy,
+595	            approvals_reviewer=approvals_reviewer,
+596	            cwd=cwd,
+597	            effort=effort,
+598	            model=model,
+599	            output_schema=output_schema,
+600	            personality=personality,
+601	            sandbox_policy=_sandbox_policy(sandbox),
+602	            service_tier=service_tier,
+603	            summary=summary,
+604	        )
+605	        turn = self._client.turn_start(self.id, wire_input, params=params)
+606	        return TurnHandle(self._client, self.id, turn.turn.id)
+607	
+608	    # END GENERATED: Thread.flat_methods
+609	
+
+... (gap) ...
+
+659	            await stream.aclose()
+660	
+661	    # BEGIN GENERATED: AsyncThread.flat_methods
+662	    async def turn(
+663	        self,
+664	        input: RunInput,
+665	        *,
+666	        approval_mode: ApprovalMode | None = None,
+667	        cwd: str | None = None,
+668	        effort: ReasoningEffort | None = None,
+669	        model: str | None = None,
+670	        output_schema: JsonObject | None = None,
+671	        personality: Personality | None = None,
+672	        sandbox: Sandbox | None = None,
+673	        service_tier: str | None = None,
+674	        summary: ReasoningSummary | None = None,
+675	    ) -> AsyncTurnHandle:
+676	        """Start a turn and return a handle for streaming or control."""
+677	        await self._codex._ensure_initialized()
+678	        wire_input = _to_wire_input(_normalize_run_input(input))
+679	        approval_policy, approvals_reviewer = _approval_mode_override_settings(approval_mode)
+680	        params = TurnStartParams(
+681	            thread_id=self.id,
+682	            input=wire_input,
+683	            approval_policy=approval_policy,
+684	            approvals_reviewer=approvals_reviewer,
+685	            cwd=cwd,
+686	            effort=effort,
+687	            model=model,
+688	            output_schema=output_schema,
+689	            personality=personality,
+690	            sandbox_policy=_sandbox_policy(sandbox),
+691	            service_tier=service_tier,
+692	            summary=summary,
+693	        )
+694	        turn = await self._codex._client.turn_start(
+695	            self.id,
+696	            wire_input,
+697	            params=params,
+698	        )
+699	        return AsyncTurnHandle(self._codex, self.id, turn.turn.id)
+700	
+701	    # END GENERATED: AsyncThread.flat_methods
+702	
+```
+
+#### codex-rs/analytics/src/reducer.rs — turn(method)
+
+```rust
+237	        }
+238	    }
+239	
+240	    fn turn(thread_id: &'a str, turn_id: &'a str) -> Self {
+241	        Self {
+242	            event_name: "turn",
+243	            thread_id,
+244	            turn_id: Some(turn_id),
+245	            review_id: None,
+246	            item_id: None,
+247	        }
+248	    }
+249	}
+250	
+251	enum MissingAnalyticsContext {
+```
+
+#### codex-rs/app-server/src/command_exec.rs — calls(calls), Err(calls), instantiates(instantiates), references(references), start(method), Result(references)
+
+```rust
+140	}
+141	
+142	impl CommandExecManager {
+143	    pub(crate) async fn start(
+144	        &self,
+145	        params: StartCommandExecParams,
+146	    ) -> Result<(), JSONRPCErrorError> {
+147	        let StartCommandExecParams {
+148	            outgoing,
+149	            request_id,
+150	            process_id,
+151	            exec_request,
+152	            started_network_proxy,
+153	            tty,
+154	            stream_stdin,
+155	            stream_stdout_stderr,
+156	            output_bytes_cap,
+157	            size,
+158	        } = params;
+159	        if process_id.is_none() && (tty || stream_stdin || stream_stdout_stderr) {
+160	            return Err(invalid_request(
+161	                "command/exec tty or streaming requires a client-supplied processId",
+162	            ));
+163	        }
+164	        let process_id = process_id.map_or_else(
+165	            || {
+166	                InternalProcessId::Generated(
+167	                    self.next_generated_process_id
+168	                        .fetch_add(1, Ordering::Relaxed),
+169	                )
+170	            },
+171	            InternalProcessId::Client,
+172	        );
+173	        let process_key = ConnectionProcessId {
+174	            connection_id: request_id.connection_id,
+175	            process_id: process_id.clone(),
+176	        };
+177	
+178	        if matches!(exec_request.sandbox, SandboxType::WindowsRestrictedToken) {
+179	            if tty || stream_stdin || stream_stdout_stderr {
+180	                return Err(invalid_request(
+181	                    "streaming command/exec is not supported with windows sandbox",
+182	                ));
+183	            }
+184	            if output_bytes_cap != Some(DEFAULT_OUTPUT_BYTES_CAP) {
+185	                return Err(invalid_request(
+186	                    "custom outputBytesCap is not supported with windows sandbox",
+187	                ));
+188	            }
+189	            if let InternalProcessId::Client(_) = &process_id {
+190	                let mut sessions = self.sessions.lock().await;
+191	                if sessions.contains_key(&process_key) {
+192	                    return Err(invalid_request(format!(
+193	                        "duplicate active command/exec process id: {}",
+194	                        process_key.process_id.error_repr(),
+195	                    )));
+196	                }
+197	                sessions.insert(
+198	                    process_key.clone(),
+199	                    CommandExecSession::UnsupportedWindowsSandbox,
+200	                );
+201	            }
+202	            let sessions = Arc::clone(&self.sessions);
+203	            tokio::spawn(async move {
+204	                let _started_network_proxy = started_network_proxy;
+205	                match codex_core::sandboxing::execute_env(exec_request, /*stdout_stream*/ None)
+206	                    .await
+207	                {
+208	                    Ok(output) => {
+209	                        outgoing
+210	                            .send_response(
+211	                                request_id,
+212	                                CommandExecResponse {
+213	                                    exit_code: output.exit_code,
+214	                                    stdout: output.stdout.text,
+215	                                    stderr: output.stderr.text,
+216	                                },
+217	                            )
+218	                            .await;
+219	                    }
+220	                    Err(err) => {
+221	                        outgoing
+222	                            .send_error(request_id, internal_error(format!("exec failed: {err}")))
+223	                            .await;
+224	                    }
+225	                }
+226	                sessions.lock().await.remove(&process_key);
+227	            });
+228	            return Ok(());
+229	        }
+230	
+231	        let ExecRequest {
+232	            command,
+233	            cwd,
+234	            env,
+235	            expiration,
+236	            sandbox: _sandbox,
+237	            arg0,
+238	            ..
+239	        } = exec_request;
+240	        // TODO(anp): Keep PathUri through the local command launch boundary.
+241	        let cwd = cwd
+242	            .to_abs_path()
+243	            .map_err(|err| invalid_request(format!("invalid command cwd: {err}")))?;
+244	
+245	        let stream_stdin = tty || stream_stdin;
+246	        let stream_stdout_stderr = tty || stream_stdout_stderr;
+247	        let (control_tx, control_rx) = mpsc::channel(32);
+248	        let notification_process_id = match &process_id {
+249	            InternalProcessId::Generated(_) => None,
+250	            InternalProcessId::Client(process_id) => Some(process_id.clone()),
+251	        };
+252	
+253	        let sessions = Arc::clone(&self.sessions);
+254	        let (program, args) = command
+255	            .split_first()
+256	            .ok_or_else(|| invalid_request("command must not be empty"))?;
+257	        {
+258	            let mut sessions = self.sessions.lock().await;
+259	            if sessions.contains_key(&process_key) {
+260	                return Err(invalid_request(format!(
+261	                    "duplicate active command/exec process id: {}",
+262	                    process_key.process_id.error_repr(),
+263	                )));
+264	            }
+265	            sessions.insert(
+266	                process_key.clone(),
+267	                CommandExecSession::Active { control_tx },
+268	            );
+269	        }
+270	        let spawned = if tty {
+271	            codex_utils_pty::spawn_pty_process(
+272	                program,
+273	                args,
+274	                cwd.as_path(),
+275	                &env,
+276	                &arg0,
+277	                size.unwrap_or_default(),
+278	            )
+279	            .await
+280	        } else if stream_stdin {
+281	            codex_utils_pty::spawn_pipe_process(program, args, cwd.as_path(), &env, &arg0).await
+282	        } else {
+283	            codex_utils_pty::spawn_pipe_process_no_stdin(program, args, cwd.as_path(), &env, &arg0)
+284	                .await
+285	        };
+286	        let spawned = match spawned {
+287	            Ok(spawned) => spawned,
+288	            Err(err) => {
+289	                self.sessions.lock().await.remove(&process_key);
+290	                return Err(internal_error(format!("failed to spawn command: {err}")));
+291	            }
+292	        };
+293	        tokio::spawn(async move {
+294	            let _started_network_proxy = started_network_proxy;
+295	            run_command(RunCommandParams {
+296	                outgoing,
+297	                request_id: request_id.clone(),
+298	                process_id: notification_process_id,
+299	                spawned,
+300	                control_rx,
+301	                stream_stdin,
+302	                stream_stdout_stderr,
+303	                expiration,
+304	                output_bytes_cap,
+305	            })
+306	            .await;
+307	            sessions.lock().await.remove(&process_key);
+308	        });
+309	        Ok(())
+310	    }
+311	
+312	    pub(crate) async fn write(
+313	        &self,
+```
+
+#### codex-rs/protocol/src/config_types.rs — calls(calls), model(method)
+
+```rust
+630	        &self.settings
+631	    }
+632	
+633	    pub fn model(&self) -> &str {
+634	        self.settings_ref().model.as_str()
+635	    }
+636	
+637	    pub fn reasoning_effort(&self) -> Option<ReasoningEffort> {
+638	        self.settings_ref().reasoning_effort.clone()
+```
+
+#### codex-rs/config/src/thread_config/proto/codex.thread_config.v1.rs — references(references), calls(calls), call(function), instantiates(instantiates)
+
+```rust
+321	        ) -> Poll<std::result::Result<(), Self::Error>> {
+322	            Poll::Ready(Ok(()))
+323	        }
+324	        fn call(&mut self, req: http::Request<B>) -> Self::Future {
+325	            match req.uri().path() {
+326	                "/codex.thread_config.v1.ThreadConfigLoader/Load" => {
+327	                    #[allow(non_camel_case_types)]
+328	                    struct LoadSvc<T: ThreadConfigLoader>(pub Arc<T>);
+329	                    impl<T: ThreadConfigLoader>
+330	                        tonic::server::UnaryService<super::LoadThreadConfigRequest> for LoadSvc<T>
+331	                    {
+332	                        type Response = super::LoadThreadConfigResponse;
+333	                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+334	                        fn call(
+335	                            &mut self,
+336	                            request: tonic::Request<super::LoadThreadConfigRequest>,
+337	                        ) -> Self::Future {
+338	                            let inner = Arc::clone(&self.0);
+339	                            let fut = async move {
+340	                                <T as ThreadConfigLoader>::load(&inner, request).await
+341	                            };
+342	                            Box::pin(fut)
+343	                        }
+344	                    }
+345	                    let accept_compression_encodings = self.accept_compression_encodings;
+346	                    let send_compression_encodings = self.send_compression_encodings;
+347	                    let max_decoding_message_size = self.max_decoding_message_size;
+348	                    let max_encoding_message_size = self.max_encoding_message_size;
+349	                    let inner = self.inner.clone();
+350	                    let fut = async move {
+351	                        let method = LoadSvc(inner);
+352	                        let codec = tonic_prost::ProstCodec::default();
+353	                        let mut grpc = tonic::server::Grpc::new(codec)
+354	                            .apply_compression_config(
+355	                                accept_compression_encodings,
+356	                                send_compression_encodings,
+357	                            )
+358	                            .apply_max_message_size_config(
+359	                                max_decoding_message_size,
+360	                                max_encoding_message_size,
+361	                            );
+362	                        let res = grpc.unary(method, req).await;
+363	                        Ok(res)
+364	                    };
+365	                    Box::pin(fut)
+366	                }
+367	                _ => Box::pin(async move {
+368	                    let mut response = http::Response::new(tonic::body::Body::default());
+369	                    let headers = response.headers_mut();
+370	                    headers.insert(
+371	                        tonic::Status::GRPC_STATUS,
+372	                        (tonic::Code::Unimplemented as i32).into(),
+373	                    );
+374	                    headers.insert(
+375	                        http::header::CONTENT_TYPE,
+376	                        tonic::metadata::GRPC_CONTENT_TYPE,
+377	                    );
+378	                    Ok(response)
+379	                }),
+380	            }
+381	        }
+382	    }
+383	    impl<T> Clone for ThreadConfigLoaderServer<T> {
+384	        fn clone(&self) -> Self {
+```
+
+#### codex-rs/core/src/tools/registry.rs — references(references), calls(calls), tool(method)
+
+```rust
+356	        Self::new(HashMap::from([(name, handler as Arc<dyn CoreToolRuntime>)]))
+357	    }
+358	
+359	    fn tool(&self, name: &ToolName) -> Option<Arc<dyn CoreToolRuntime>> {
+360	        self.tools.get(name).map(Arc::clone)
+361	    }
+362	
+363	    #[cfg(test)]
+364	    pub(crate) fn tool_names_for_test(&self) -> Vec<ToolName> {
+```
+
+#### codex-rs/app-server-daemon/src/backend/pid.rs — calls(calls), stop(method), Result(references)
+
+```rust
+237	        bail!("pid-managed app-server startup is unsupported on this platform")
+238	    }
+239	
+240	    pub(crate) async fn stop(&self) -> Result<()> {
+241	        loop {
+242	            let Some(record) = self.wait_for_pid_start().await? else {
+243	                return Ok(());
+244	            };
+245	            if !self.record_is_active(&record).await? {
+246	                match self.refresh_after_stale_record(&record).await? {
+247	                    PidFileState::Missing => return Ok(()),
+248	                    PidFileState::Starting | PidFileState::Running(_) => continue,
+249	                }
+250	            }
+251	
+252	            let pid = record.pid;
+253	            self.terminate_process(pid)?;
+254	            let started_at = tokio::time::Instant::now();
+255	            let deadline = tokio::time::Instant::now() + STOP_TIMEOUT;
+256	            let mut forced = false;
+257	            while tokio::time::Instant::now() < deadline {
+258	                if !self.record_is_active(&record).await? {
+259	                    match self.refresh_after_stale_record(&record).await? {
+260	                        PidFileState::Missing => return Ok(()),
+261	                        PidFileState::Starting | PidFileState::Running(_) => break,
+262	                    }
+263	                }
+264	                if !forced && started_at.elapsed() >= STOP_GRACE_PERIOD {
+265	                    self.force_terminate_process(pid)?;
+266	                    forced = true;
+267	                }
+268	                sleep(STOP_POLL_INTERVAL).await;
+269	            }
+270	
+271	            if self.record_is_active(&record).await? {
+272	                bail!("timed out waiting for pid-managed app server {pid} to stop");
+273	            }
+274	        }
+275	    }
+276	
+277	    async fn wait_for_pid_start(&self) -> Result<Option<PidRecord>> {
+278	        let deadline = tokio::time::Instant::now() + START_TIMEOUT;
+```
+
+#### codex-rs/core/src/tasks/mod.rs — references(references), abort(method), TurnContext(references)
+
+```rust
+236	    /// The default implementation is a no-op; override this if additional
+237	    /// teardown or notifications are required once
+238	    /// [`Session::abort_all_tasks`] cancels the task.
+239	    fn abort(
+240	        &self,
+241	        session: Arc<SessionTaskContext>,
+242	        ctx: Arc<TurnContext>,
+243	    ) -> impl std::future::Future<Output = ()> + Send {
+244	        async move {
+245	            let _ = (session, ctx);
+246	        }
+247	    }
+248	}
+249	
+250	pub(crate) trait AnySessionTask: Send + Sync + 'static {
+```
+
+### Not shown above — explore these names for their source
+
+- codex-rs/thread-store/src/live_thread.rs: resume:101
+- codex-rs/network-proxy/src/network_policy.rs: event:447
+- codex-rs/apply-patch/src/lib.rs: append:211
+- codex-rs/rollout-trace/src/writer.rs: append:109
+- codex-rs/tools/src/tool_call.rs: ToolCall:83, ExtensionTurnItem:38, fmt:96, function_arguments:112, emit_started:49, emit_completed:52, emit_started:73, emit_completed:77, TurnItemEmissionFuture:34, TurnItemEmitter:47
+- codex-rs/core/src/mcp_tool_call.rs: HandledMcpToolCall:303, McpToolApprovalKey:1186, handle_mcp_tool_call:112, handle_approved_mcp_tool_call:334, lookup_mcp_tool_metadata:1474, from_tool_metadata:317, custom_mcp_tool_approval_mode:1035, notify_mcp_tool_call_skip:2170, notify_mcp_tool_call_started:891, maybe_request_mcp_tool_approval:1204, emit_mcp_call_metrics:431, session_mcp_tool_approval_key:1400, mcp_tool_approval_prompt_options:1192, persistent_mcp_tool_approval_key:1421, mcp_tool_approval_is_remembered:1930, remember_mcp_tool_approval:1935, apply_mcp_tool_approval_decision:1940, maybe_persist_mcp_tool_approval:1966, McpToolApprovalMetadata:1015, build_mcp_tool_approval_question:1596
+- codex-rs/app-server-protocol/schema/typescript/v2/ThreadItem.ts: ThreadItem:29, ThreadItem.ts:1
+- codex-rs/app-server-protocol/schema/typescript/v2/ThreadResumeInitialTurnsPageParams.ts: ThreadResumeInitialTurnsPageParams:7
+- codex-rs/app-server-protocol/schema/typescript/v2/McpToolCallError.ts: McpToolCallError:5
+- codex-rs/app-server-protocol/schema/typescript/v2/McpToolCallResult.ts: McpToolCallResult:6
+- ... and 113 more files
+
+---
+> **Complete source for 8 files is included above — do NOT re-read them.** If your question also needs files/symbols listed under "Not shown above" (or any area this call didn't cover), make ANOTHER codegraph_explore targeting those names — it returns the same source with line numbers and is cheaper and more complete than reading. Reserve Read for a single specific line range explore can't surface.
+
+> **Explore budget: 2 calls for this project (3,112 files indexed).** Each call covers ~6 files; if your question spans more, spend your remaining calls on the uncovered area BEFORE falling back to Read — another explore is cheaper and more complete than reading those files. Synthesize once you've used 2.
+
+### how does a user turn move through context building, model streaming, tool execution, approval, and persistence?
+
+## Exploration: how does a user turn move through context building, model streaming, tool execution, approval, and persistence?
+
+Found 211 symbols across 86 files.
+
+### Blast radius — what depends on these (update/verify before editing)
+
+- `build` (codex-rs/state/src/model/thread_metadata.rs:193) — 3 callers; tests: `codex-rs/core/tests/suite/realtime_conversation.rs`, `codex-rs/memories/write/src/startup_tests.rs`
+- `AppToolApproval` (codex-rs/app-server-protocol/schema/typescript/v2/AppToolApproval.ts:5) — 7 callers in `codex-rs/app-server-protocol/schema/typescript/v2/AppToolsConfig.ts`, `codex-rs/app-server-protocol/schema/typescript/v2/AppsConfig.ts`, `codex-rs/app-server-protocol/schema/typescript/v2/AppsDefaultConfig.ts`, `codex-rs/app-server-protocol/schema/typescript/v2/index.ts`; ⚠️ no covering tests found
+- `InternalModelContextFragment` (codex-rs/core/src/context/internal_model_context.rs:63) — 1 caller in `codex-rs/core/src/context/mod.rs`; ⚠️ no covering tests found
+- `McpToolCallAppContext` (codex-rs/app-server-protocol/schema/typescript/v2/McpToolCallAppContext.ts:5) — 3 callers in `codex-rs/app-server-protocol/schema/typescript/v2/ThreadItem.ts`, `codex-rs/app-server-protocol/schema/typescript/v2/index.ts`; ⚠️ no covering tests found
+- `NetworkApprovalContext` (codex-rs/app-server-protocol/schema/typescript/v2/NetworkApprovalContext.ts:6) — 3 callers in `codex-rs/app-server-protocol/schema/typescript/v2/CommandExecutionRequestApprovalParams.ts`, `codex-rs/app-server-protocol/schema/typescript/v2/index.ts`; ⚠️ no covering tests found
+
+### Relationships
+
+**implements:**
+- InternalModelContextFragment → ContextualUserFragment
+
+**calls:**
+- build → enum_to_string
+- build → canonicalize_datetime
+- build → map
+- apply_bespoke_event_handling → guardian_auto_approval_review_notification
+- item_event_to_server_notification → convert_patch_changes
+- from → convert_patch_changes
+- reconcile_rollout → apply_rollout_items
+- annotate_object → annotate_variant_list
+- connect_remote_control_websocket → prepare_remote_control_enrollment
+- apply_bespoke_event_handling → maybe_emit_hook_prompt_item_completed
+- ... and 185 more
+
+**references:**
+- AppToolsConfig → AppToolApproval
+- AppsConfig → AppToolApproval
+- AppsDefaultConfig → AppToolApproval
+- AppsConfig → ApprovalsReviewer
+- Config → ApprovalsReviewer
+- ThreadForkParams → ApprovalsReviewer
+- ThreadForkResponse → ApprovalsReviewer
+- ThreadResumeParams → ApprovalsReviewer
+- ThreadResumeResponse → ApprovalsReviewer
+- ThreadSettings → ApprovalsReviewer
+- ... and 34 more
+
+### Source Code
+
+> The code below is the **verbatim, current on-disk source** of these files — re-read from disk on this call and line-numbered, byte-for-byte identical to what the Read tool returns. It is NOT a summary, outline, or stale cache. Treat each block as a Read you have already performed: do not Read a file shown here.
+
+#### sdk/python/src/openai_codex/api.py — calls(calls), instantiates(instantiates), turn(method)
+
+```python
+571	            stream.close()
+572	
+573	    # BEGIN GENERATED: Thread.flat_methods
+574	    def turn(
+575	        self,
+576	        input: RunInput,
+577	        *,
+578	        approval_mode: ApprovalMode | None = None,
+579	        cwd: str | None = None,
+580	        effort: ReasoningEffort | None = None,
+581	        model: str | None = None,
+582	        output_schema: JsonObject | None = None,
+583	        personality: Personality | None = None,
+584	        sandbox: Sandbox | None = None,
+585	        service_tier: str | None = None,
+586	        summary: ReasoningSummary | None = None,
+587	    ) -> TurnHandle:
+588	        """Start a turn and return a handle for streaming or control."""
+589	        wire_input = _to_wire_input(_normalize_run_input(input))
+590	        approval_policy, approvals_reviewer = _approval_mode_override_settings(approval_mode)
+591	        params = TurnStartParams(
+592	            thread_id=self.id,
+593	            input=wire_input,
+594	            approval_policy=approval_policy,
+595	            approvals_reviewer=approvals_reviewer,
+596	            cwd=cwd,
+597	            effort=effort,
+598	            model=model,
+599	            output_schema=output_schema,
+600	            personality=personality,
+601	            sandbox_policy=_sandbox_policy(sandbox),
+602	            service_tier=service_tier,
+603	            summary=summary,
+604	        )
+605	        turn = self._client.turn_start(self.id, wire_input, params=params)
+606	        return TurnHandle(self._client, self.id, turn.turn.id)
+607	
+608	    # END GENERATED: Thread.flat_methods
+609	
+
+... (gap) ...
+
+659	            await stream.aclose()
+660	
+661	    # BEGIN GENERATED: AsyncThread.flat_methods
+662	    async def turn(
+663	        self,
+664	        input: RunInput,
+665	        *,
+666	        approval_mode: ApprovalMode | None = None,
+667	        cwd: str | None = None,
+668	        effort: ReasoningEffort | None = None,
+669	        model: str | None = None,
+670	        output_schema: JsonObject | None = None,
+671	        personality: Personality | None = None,
+672	        sandbox: Sandbox | None = None,
+673	        service_tier: str | None = None,
+674	        summary: ReasoningSummary | None = None,
+675	    ) -> AsyncTurnHandle:
+676	        """Start a turn and return a handle for streaming or control."""
+677	        await self._codex._ensure_initialized()
+678	        wire_input = _to_wire_input(_normalize_run_input(input))
+679	        approval_policy, approvals_reviewer = _approval_mode_override_settings(approval_mode)
+680	        params = TurnStartParams(
+681	            thread_id=self.id,
+682	            input=wire_input,
+683	            approval_policy=approval_policy,
+684	            approvals_reviewer=approvals_reviewer,
+685	            cwd=cwd,
+686	            effort=effort,
+687	            model=model,
+688	            output_schema=output_schema,
+689	            personality=personality,
+690	            sandbox_policy=_sandbox_policy(sandbox),
+691	            service_tier=service_tier,
+692	            summary=summary,
+693	        )
+694	        turn = await self._codex._client.turn_start(
+695	            self.id,
+696	            wire_input,
+697	            params=params,
+698	        )
+699	        return AsyncTurnHandle(self._codex, self.id, turn.turn.id)
+700	
+701	    # END GENERATED: AsyncThread.flat_methods
+702	
+```
+
+#### codex-rs/analytics/src/reducer.rs — calls(calls), references(references), instantiates(instantiates), map(calls), turn(method), ingest_initialize(method), ingest_app_mentioned(method), emit_thread_initialized(method), web_search_query_count(function)
+
+```rust
+237	        }
+238	    }
+239	
+240	    fn turn(thread_id: &'a str, turn_id: &'a str) -> Self {
+241	        Self {
+242	            event_name: "turn",
+243	            thread_id,
+244	            turn_id: Some(turn_id),
+245	            review_id: None,
+246	            item_id: None,
+247	        }
+248	    }
+249	}
+250	
+251	enum MissingAnalyticsContext {
+
+... (gap) ...
+
+533	        }
+534	    }
+535	
+536	    fn ingest_initialize(
+537	        &mut self,
+538	        connection_id: u64,
+539	        params: InitializeParams,
+540	        product_client_id: String,
+541	        runtime: CodexRuntimeMetadata,
+542	        rpc_transport: AppServerRpcTransport,
+543	    ) {
+544	        self.connections.insert(
+545	            connection_id,
+546	            ConnectionState {
+547	                app_server_client: CodexAppServerClientMetadata {
+548	                    product_client_id,
+549	                    client_name: Some(params.client_info.name),
+550	                    client_version: Some(params.client_info.version),
+551	                    rpc_transport,
+552	                    experimental_api_enabled: params
+553	                        .capabilities
+554	                        .map(|capabilities| capabilities.experimental_api),
+555	                },
+556	                runtime,
+557	            },
+558	        );
+559	    }
+560	
+561	    fn ingest_subagent_thread_started(
+562	        &mut self,
+
+... (gap) ...
+
+739	        }
+740	    }
+741	
+742	    fn ingest_app_mentioned(&mut self, input: AppMentionedInput, out: &mut Vec<TrackEventRequest>) {
+743	        let AppMentionedInput { tracking, mentions } = input;
+744	        out.extend(mentions.into_iter().map(|mention| {
+745	            let event_params = codex_app_metadata(&tracking, mention);
+746	            TrackEventRequest::AppMentioned(CodexAppMentionedEventRequest {
+747	                event_type: "codex_app_mentioned",
+748	                event_params,
+749	            })
+750	        }));
+751	    }
+752	
+753	    fn ingest_app_used(&mut self, input: AppUsedInput, out: &mut Vec<TrackEventRequest>) {
+754	        let AppUsedInput { tracking, app } = input;
+
+... (gap) ...
+
+1290	        }
+1291	    }
+1292	
+1293	    fn emit_thread_initialized(
+1294	        &mut self,
+1295	        connection_id: u64,
+1296	        thread: codex_app_server_protocol::Thread,
+1297	        model: String,
+1298	        initialization_mode: ThreadInitializationMode,
+1299	        out: &mut Vec<TrackEventRequest>,
+1300	    ) {
+1301	        let session_source: SessionSource = thread.source.into();
+1302	        let session_id = thread.session_id;
+1303	        let thread_id = thread.id;
+1304	        let parent_thread_id = thread.parent_thread_id;
+1305	        let forked_from_thread_id = thread.forked_from_id;
+1306	        let Some(connection_state) = self.connections.get(&connection_id) else {
+1307	            return;
+1308	        };
+1309	        let thread_metadata = ThreadMetadataState::from_thread_metadata(
+1310	            session_id.clone(),
+1311	            &session_source,
+1312	            thread.thread_source.map(Into::into),
+1313	            parent_thread_id,
+1314	            initialization_mode,
+1315	        );
+1316	        self.threads.insert(
+1317	            thread_id.clone(),
+1318	            ThreadAnalyticsState {
+1319	                connection_id: Some(connection_id),
+1320	                metadata: Some(thread_metadata.clone()),
+1321	            },
+1322	        );
+1323	        out.push(TrackEventRequest::ThreadInitialized(
+1324	            ThreadInitializedEvent {
+1325	                event_type: "codex_thread_initialized",
+1326	                event_params: ThreadInitializedEventParams {
+1327	                    thread_id,
+1328	                    session_id,
+1329	                    app_server_client: connection_state.app_server_client.clone(),
+1330	                    runtime: connection_state.runtime.clone(),
+1331	                    model,
+1332	                    ephemeral: thread.ephemeral,
+1333	                    thread_source: thread_metadata.thread_source,
+1334	                    initialization_mode,
+1335	                    subagent_source: thread_metadata.subagent_source.clone(),
+1336	                    parent_thread_id: thread_metadata.parent_thread_id,
+1337	                    forked_from_thread_id,
+1338	                    created_at: u64::try_from(thread.created_at).unwrap_or_default(),
+1339	                },
+1340	            },
+1341	        ));
+1342	    }
+1343	
+1344	    fn ingest_compaction(&mut self, input: CodexCompactionEvent, out: &mut Vec<TrackEventRequest>) {
+1345	        let Some((connection_state, thread_metadata)) =
+
+... (gap) ...
+
+2472	    }
+2473	}
+2474	
+2475	fn web_search_query_count(query: &str, action: Option<&WebSearchAction>) -> Option<u64> {
+2476	    match action {
+2477	        Some(WebSearchAction::Search { query, queries }) => queries
+2478	            .as_ref()
+2479	            .map(|queries| usize_to_u64(queries.len()))
+2480	            .or_else(|| query.as_ref().map(|_| 1)),
+2481	        Some(WebSearchAction::OpenPage { .. })
+2482	        | Some(WebSearchAction::FindInPage { .. })
+2483	        | Some(WebSearchAction::Other) => None,
+2484	        None => (!query.trim().is_empty()).then_some(1),
+2485	    }
+2486	}
+2487	
+2488	fn accepted_line_event_input(
+2489	    turn_id: &str,
+```
+
+#### codex-rs/protocol/src/config_types.rs — calls(calls), model(method)
+
+```rust
+630	        &self.settings
+631	    }
+632	
+633	    pub fn model(&self) -> &str {
+634	        self.settings_ref().model.as_str()
+635	    }
+636	
+637	    pub fn reasoning_effort(&self) -> Option<ReasoningEffort> {
+638	        self.settings_ref().reasoning_effort.clone()
+```
+
+#### codex-rs/core/src/tools/registry.rs — references(references), tool(method), map(calls), calls(calls)
+
+```rust
+356	        Self::new(HashMap::from([(name, handler as Arc<dyn CoreToolRuntime>)]))
+357	    }
+358	
+359	    fn tool(&self, name: &ToolName) -> Option<Arc<dyn CoreToolRuntime>> {
+360	        self.tools.get(name).map(Arc::clone)
+361	    }
+362	
+363	    #[cfg(test)]
+364	    pub(crate) fn tool_names_for_test(&self) -> Vec<ToolName> {
+```
+
+#### codex-rs/app-server-protocol/schema/typescript/v2/CommandExecutionRequestApprovalParams.ts — CommandExecutionRequestApprovalParams(type_alias), CommandExecutionRequestApprovalParams.ts(file)
+
+```typescript
+1	// GENERATED CODE! DO NOT MODIFY BY HAND!
+2	
+3	// This file was generated by [ts-rs](https://github.com/Aleph-Alpha/ts-rs). Do not edit this file manually.
+4	import type { LegacyAppPathString } from "../LegacyAppPathString";
+5	import type { CommandAction } from "./CommandAction";
+6	import type { ExecPolicyAmendment } from "./ExecPolicyAmendment";
+7	import type { NetworkApprovalContext } from "./NetworkApprovalContext";
+8	import type { NetworkPolicyAmendment } from "./NetworkPolicyAmendment";
+9	
+10	export type CommandExecutionRequestApprovalParams = {threadId: string, turnId: string, itemId: string, /**
+11	 * Unix timestamp (in milliseconds) when this approval request started.
+12	 */
+13	startedAtMs: number, /**
+14	 * Unique identifier for this specific approval callback.
+15	 *
+16	 * For regular shell/unified_exec approvals, this is null.
+17	 *
+18	 * For zsh-exec-bridge subcommand approvals, multiple callbacks can belong to
+19	 * one parent `itemId`, so `approvalId` is a distinct opaque callback id
+20	 * (a UUID) used to disambiguate routing.
+21	 */
+22	approvalId?: string | null, /**
+23	 * Environment in which the command will run.
+24	 */
+25	environmentId: string | null, /**
+26	 * Optional explanatory reason (e.g. request for network access).
+27	 */
+28	reason?: string | null, /**
+29	 * Optional context for a managed-network approval prompt.
+30	 */
+31	networkApprovalContext?: NetworkApprovalContext | null, /**
+32	 * The command to be executed.
+33	 */
+34	command?: string | null, /**
+35	 * The command's working directory.
+36	 */
+37	cwd?: LegacyAppPathString | null, /**
+38	 * Best-effort parsed command actions for friendly display.
+39	 */
+40	commandActions?: Array<CommandAction> | null, /**
+41	 * Optional proposed execpolicy amendment to allow similar commands without prompting.
+42	 */
+43	proposedExecpolicyAmendment?: ExecPolicyAmendment | null, /**
+44	 * Optional proposed network policy amendments (allow/deny host) for future requests.
+45	 */
+46	proposedNetworkPolicyAmendments?: Array<NetworkPolicyAmendment> | null};
+```
+
+#### codex-rs/app-server-protocol/schema/typescript/v2/CommandExecutionApprovalDecision.ts — CommandExecutionApprovalDecision(type_alias)
+
+```typescript
+1	// GENERATED CODE! DO NOT MODIFY BY HAND!
+2	
+3	// This file was generated by [ts-rs](https://github.com/Aleph-Alpha/ts-rs). Do not edit this file manually.
+4	import type { ExecPolicyAmendment } from "./ExecPolicyAmendment";
+5	import type { NetworkPolicyAmendment } from "./NetworkPolicyAmendment";
+6	
+7	export type CommandExecutionApprovalDecision = "accept" | "acceptForSession" | { "acceptWithExecpolicyAmendment": { execpolicy_amendment: ExecPolicyAmendment, } } | { "applyNetworkPolicyAmendment": { network_policy_amendment: NetworkPolicyAmendment, } } | "decline" | "cancel";
+```
+
+#### codex-rs/core/src/context/internal_model_context.rs — InternalModelContextFragment(struct), new(method), role(method), markers(method), type_markers(method), matches_text(method), body(method)
+
+```rust
+1	//! Hidden user-context fragment for extension-owned model steering.
+2	
+3	use super::ContextualUserFragment;
+4	use std::error::Error;
+5	use std::fmt;
+6	
+7	const CONTEXT_START_MARKER: &str = "<codex_internal_context";
+8	const CONTEXT_END_MARKER: &str = "</codex_internal_context>";
+9	const LEGACY_GOAL_CONTEXT_START_MARKER: &str = "<goal_context>";
+10	const LEGACY_GOAL_CONTEXT_END_MARKER: &str = "</goal_context>";
+11	const SOURCE_ATTR_START: &str = " source=\"";
+12	const SOURCE_ATTR_END: &str = "\">";
+13	
+14	/// Source label for hidden internal model context.
+15	#[derive(Debug, Clone, PartialEq, Eq)]
+16	pub struct InternalContextSource(String);
+17	
+18	impl InternalContextSource {
+19	    /// Creates a source label for an internal model-context fragment.
+20	    ///
+21	    /// Sources are intentionally constrained so the value can be embedded in the
+22	    /// wrapper without escaping and still remain easy to audit in stored history.
+23	    pub fn new(source: impl Into<String>) -> Result<Self, InvalidInternalContextSource> {
+24	        let source = source.into();
+25	        if is_valid_source(&source) {
+26	            Ok(Self(source))
+27	        } else {
+28	            Err(InvalidInternalContextSource { source })
+29	        }
+30	    }
+31	
+32	    /// Creates a source label from a trusted static string.
+33	    pub fn from_static(source: &'static str) -> Self {
+34	        Self::new(source)
+35	            .unwrap_or_else(|_| panic!("invalid static internal context source: {source}"))
+36	    }
+37	
+38	    pub fn as_str(&self) -> &str {
+39	        &self.0
+40	    }
+41	}
+42	
+43	/// Error returned when an internal model-context source is invalid.
+44	#[derive(Debug, Clone, PartialEq, Eq)]
+45	pub struct InvalidInternalContextSource {
+46	    source: String,
+47	}
+48	
+49	impl fmt::Display for InvalidInternalContextSource {
+50	    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+51	        let source = &self.source;
+52	        write!(
+53	            f,
+54	            "invalid internal model context source {source:?}; expected [a-z][a-z0-9_]*"
+55	        )
+56	    }
+57	}
+58	
+59	impl Error for InvalidInternalContextSource {}
+60	
+61	/// Hidden runtime-owned context injected into model input.
+62	#[derive(Debug, Clone, PartialEq, Eq)]
+63	pub struct InternalModelContextFragment {
+64	    source: InternalContextSource,
+65	    body: String,
+66	}
+67	
+68	impl InternalModelContextFragment {
+69	    /// Creates hidden model context with an extension-owned source label.
+70	    pub fn new(source: InternalContextSource, body: impl Into<String>) -> Self {
+71	        Self {
+72	            source,
+73	            body: body.into(),
+74	        }
+75	    }
+76	}
+77	
+78	impl ContextualUserFragment for InternalModelContextFragment {
+79	    fn role(&self) -> &'static str {
+80	        "user"
+81	    }
+82	
+83	    fn markers(&self) -> (&'static str, &'static str) {
+84	        Self::type_markers()
+85	    }
+86	
+87	    fn type_markers() -> (&'static str, &'static str) {
+88	        (CONTEXT_START_MARKER, CONTEXT_END_MARKER)
+89	    }
+90	
+91	    fn matches_text(text: &str) -> bool {
+92	        let trimmed = text.trim();
+93	        if matches_legacy_goal_context(trimmed) {
+94	            return true;
+95	        }
+96	
+97	        let Some(rest) = trimmed.strip_prefix(CONTEXT_START_MARKER) else {
+98	            return false;
+99	        };
+100	        let Some(rest) = rest.strip_prefix(SOURCE_ATTR_START) else {
+101	            return false;
+102	        };
+103	        let Some((source, body_and_close)) = rest.split_once(SOURCE_ATTR_END) else {
+104	            return false;
+105	        };
+106	
+107	        is_valid_source(source) && body_and_close.ends_with(CONTEXT_END_MARKER)
+108	    }
+109	
+110	    fn body(&self) -> String {
+111	        let source = self.source.as_str();
+112	        let body = &self.body;
+113	        format!(" source=\"{source}\">\n{body}\n")
+114	    }
+115	}
+116	
+117	fn matches_legacy_goal_context(text: &str) -> bool {
+118	    text.starts_with(LEGACY_GOAL_CONTEXT_START_MARKER)
+119	        && text.ends_with(LEGACY_GOAL_CONTEXT_END_MARKER)
+120	}
+121	
+122	fn is_valid_source(source: &str) -> bool {
+123	    let mut chars = source.chars();
+124	    let Some(first) = chars.next() else {
+125	        return false;
+126	    };
+127	    first.is_ascii_lowercase()
+128	        && chars.all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_')
+129	}
+```
+
+
+... (output truncated to budget; the source above is complete and verbatim — treat it as already Read. For any area not covered, run another codegraph_explore with the specific names — do NOT Read these files.)

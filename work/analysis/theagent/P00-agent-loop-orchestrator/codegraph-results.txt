@@ -1,0 +1,3 @@
+# CodeGraph Results
+
+CodeGraph was not run because `--skip-codegraph` was passed.

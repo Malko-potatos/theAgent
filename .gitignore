@@ -1,0 +1,13 @@
+.DS_Store
+/work/external-repos/*
+!/work/external-repos/README.md
+
+# Local build and dependency outputs
+/node_modules/
+/dist/
+/coverage/
+*.tsbuildinfo
+
+# Release metadata is tracked, but large build artifacts should stay out by default.
+/outputs/releases/**/artifacts/*
+!/outputs/releases/**/artifacts/README.md

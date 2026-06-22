@@ -1,0 +1,1917 @@
+# CodeGraph Results
+
+Generated: 2026-06-19T12:35:54+09:00
+
+Note: CodeGraph may create or update `.codegraph/` inside the source checkout.
+
+┌  Initializing CodeGraph
+│
+▲  Already initialized in /Users/potablepotato/HansolProduct/potato-project/theAgent/work/external-repos/moonshotai__kimi-cli
+│
+●  Use "codegraph index" to re-index or "codegraph sync" to update
+│
+└  
+
+[1m
+CodeGraph Status
+[0m
+[36mProject:[0m /Users/potablepotato/HansolProduct/potato-project/theAgent/work/external-repos/moonshotai__kimi-cli
+
+[1mIndex Statistics:[0m
+  Files:     741
+  Nodes:     16,059
+  Edges:     47,458
+  DB Size:   32.88 MB
+  Backend:   [32mnode:sqlite — built-in (full WAL)[0m
+  Journal:   [32mwal[0m
+
+[1mNodes by Kind:[0m
+  function        4,664
+  import          4,663
+  method          3,317
+  class           911
+  file            709
+  property        578
+  variable        522
+  type_alias      315
+  constant        222
+  interface       121
+  route           36
+  component       1
+
+[1mFiles by Language:[0m
+  python          532
+  tsx             109
+  typescript      66
+  yaml            32
+  javascript      1
+  vue             1
+
+[32m✓[0m Index is up to date
+
+
+## Explore Queries
+
+
+### where is the main agent loop, turn loop, or orchestration state machine implemented?
+
+## Dynamic-dispatch links among your symbols
+(synthesized — the indirect hops grep/Read would reconstruct; the `@file:line` is the wiring site)
+
+- WireViewer → TurnTree   [dynamic: renders <TurnTree>]
+- TurnTree → TurnNodeItem   [dynamic: renders <TurnNodeItem>]
+
+> Full source for these symbols is below — the call flow among them, followed by their bodies.
+## Exploration: where is the main agent loop, turn loop, or orchestration state machine implemented?
+
+Found 161 symbols across 63 files.
+
+### Blast radius — what depends on these (update/verify before editing)
+
+- `main` (packages/kosong/src/kosong/__main__.py:94) — 1 caller in `packages/kosong/src/kosong/__main__.py`; ⚠️ no covering tests found
+- `main` (src/kimi_cli/__main__.py:12) — 1 caller in `src/kimi_cli/__main__.py`; ⚠️ no covering tests found
+- `main` (src/kimi_cli/cli/__main__.py:9) — 1 caller in `src/kimi_cli/cli/__main__.py`; ⚠️ no covering tests found
+- `main` (packages/kosong/src/kosong/contrib/chat_provider/google_genai.py:711) — 1 caller in `packages/kosong/src/kosong/contrib/chat_provider/google_genai.py`; ⚠️ no covering tests found
+
+### Relationships
+
+**references:**
+- TurnState → StepState
+- StepState → ToolCallState
+- ToolCallState → ToolApprovalState
+- useSessionStream → ToolCallState
+- install_crash_handlers → _excepthook
+
+**calls:**
+- main → with_thinking
+- main → install_crash_handlers
+- main → normalize_proxy_env
+- main → install_crash_handlers
+- main → normalize_proxy_env
+- main → with_thinking
+- main → tool_results
+- main → generate
+- main → resolve_npm
+- main → check_node_version
+- ... and 178 more
+
+### Source Code
+
+> The code below is the **verbatim, current on-disk source** of these files — re-read from disk on this call and line-numbered, byte-for-byte identical to what the Read tool returns. It is NOT a summary, outline, or stale cache. Treat each block as a Read you have already performed: do not Read a file shown here.
+
+#### src/kimi_cli/soul/kimisoul.py — clear_current_plan(method), calls(calls), exists(calls), agent(method)
+
+```python
+428	
+429	        return read_plan_file(self._plan_session_id)
+430	
+431	    def clear_current_plan(self) -> None:
+432	        """Delete the current plan file."""
+433	        path = self.get_plan_file_path()
+434	        if path and path.exists():
+435	            path.unlink()
+436	
+437	    async def toggle_plan_mode(self) -> bool:
+438	        """Toggle plan mode on/off. Returns the new state.
+
+... (gap) ...
+
+496	        )
+497	
+498	    @property
+499	    def agent(self) -> Agent:
+500	        return self._agent
+501	
+502	    @property
+503	    def runtime(self) -> Runtime:
+```
+
+#### scripts/cleanup_tmp_sessions.py — main(function)
+
+```python
+1	#!/usr/bin/env python3
+2	"""Clean up .kimi sessions whose workdir is under a temporary directory.
+3	
+4	This script handles two cases:
+5	  1. Entries in kimi.json whose path is a tmp directory -> remove entry + session dir.
+6	  2. Orphan session directories on disk that have no matching kimi.json entry
+7	     (e.g. leftover from previously cleaned entries or tests).
+8	
+9	Temporary directories are detected by checking if the path starts with
+10	common tmp prefixes: /tmp, /private/tmp, /var/folders, /private/var/folders.
+11	
+12	Usage:
+13	    python scripts/cleanup_tmp_sessions.py          # dry-run (default)
+14	    python scripts/cleanup_tmp_sessions.py --apply   # actually delete
+15	"""
+16	
+17	from __future__ import annotations
+18	
+19	import argparse
+20	import json
+21	import shutil
+22	import sys
+23	from hashlib import md5
+24	from pathlib import Path
+25	
+26	KIMI_DIR = Path.home() / ".kimi"
+27	METADATA_FILE = KIMI_DIR / "kimi.json"
+28	SESSIONS_DIR = KIMI_DIR / "sessions"
+29	
+30	TMP_PREFIXES = (
+31	    "/tmp/",
+32	    "/private/tmp/",
+33	    "/var/folders/",
+34	    "/private/var/folders/",
+35	)
+36	
+37	
+38	def is_tmp_path(path: str) -> bool:
+39	    """Return True if *path* looks like a temporary directory."""
+40	    if path in ("/tmp", "/private/tmp"):
+41	        return True
+42	    return any(path.startswith(p) for p in TMP_PREFIXES)
+43	
+44	
+45	def work_dir_hash(path: str, kaos: str = "local") -> str:
+46	    h = md5(path.encode("utf-8")).hexdigest()
+47	    return h if kaos == "local" else f"{kaos}_{h}"
+48	
+49	
+50	def dir_total_size(d: Path) -> int:
+51	    return sum(f.stat().st_size for f in d.rglob("*") if f.is_file())
+52	
+53	
+54	def main() -> None:
+55	    parser = argparse.ArgumentParser(
+56	        description=__doc__,
+57	        formatter_class=argparse.RawDescriptionHelpFormatter,
+58	    )
+59	    parser.add_argument("--apply", action="store_true", help="Actually delete (default is dry-run)")
+60	    args = parser.parse_args()
+61	
+62	    if not METADATA_FILE.exists():
+63	        print(f"Metadata file not found: {METADATA_FILE}")
+64	        sys.exit(1)
+65	
+66	    with open(METADATA_FILE, encoding="utf-8") as f:
+67	        metadata = json.load(f)
+68	
+69	    work_dirs: list[dict] = metadata.get("work_dirs", [])
+70	
+71	    # --- Phase 1: tmp entries in kimi.json ---
+72	    tmp_entries: list[dict] = []
+73	    keep_entries: list[dict] = []
+74	    keep_hashes: set[str] = set()
+75	    for wd in work_dirs:
+76	        if is_tmp_path(wd.get("path", "")):
+77	            tmp_entries.append(wd)
+78	        else:
+79	            keep_entries.append(wd)
+80	            keep_hashes.add(work_dir_hash(wd["path"], wd.get("kaos", "local")))
+81	
+82	    tmp_dirs: list[Path] = []
+83	    for wd in tmp_entries:
+84	        h = work_dir_hash(wd["path"], wd.get("kaos", "local"))
+85	        session_dir = SESSIONS_DIR / h
+86	        if session_dir.is_dir():
+87	            tmp_dirs.append(session_dir)
+88	
+89	    # --- Phase 2: orphan directories (on disk but not in kimi.json) ---
+90	    orphan_dirs: list[Path] = []
+91	    if SESSIONS_DIR.is_dir():
+92	        for d in SESSIONS_DIR.iterdir():
+93	            if d.is_dir() and d.name not in keep_hashes and d not in tmp_dirs:
+94	                orphan_dirs.append(d)
+95	
+96	    all_dirs_to_remove = tmp_dirs + orphan_dirs
+97	    if not all_dirs_to_remove and not tmp_entries:
+98	        print("No temporary or orphan sessions found. Nothing to do.")
+99	        return
+100	
+101	    mode = "DRY-RUN" if not args.apply else "APPLY"
+102	
+103	    # Report phase 1
+104	    if tmp_entries:
+105	        n_entries, n_dirs = len(tmp_entries), len(tmp_dirs)
+106	        print(f"[{mode}] Phase 1: {n_entries} tmp workdir entries, {n_dirs} dirs.")
+107	        for wd in tmp_entries[:10]:
+108	            print(f"  {wd['path']}")
+109	        if len(tmp_entries) > 10:
+110	            print(f"  ... and {len(tmp_entries) - 10} more")
+111	        print()
+112	
+113	    # Report phase 2
+114	    if orphan_dirs:
+115	        n_orphans = len(orphan_dirs)
+116	        print(f"[{mode}] Phase 2: {n_orphans} orphan session dirs.")
+117	        for d in orphan_dirs[:5]:
+118	            subdirs = list(d.iterdir())
+119	            print(f"  {d.name}/ ({len(subdirs)} session(s))")
+120	        if len(orphan_dirs) > 5:
+121	            print(f"  ... and {len(orphan_dirs) - 5} more")
+122	        print()
+123	
+124	    total_size = sum(dir_total_size(d) for d in all_dirs_to_remove)
+125	    print(f"Total: {len(all_dirs_to_remove)} directories, {total_size / 1024 / 1024:.1f} MB")
+126	
+127	    if not args.apply:
+128	        print("\nRe-run with --apply to delete.")
+129	        return
+130	
+131	    # Delete session directories
+132	    for d in all_dirs_to_remove:
+133	        shutil.rmtree(d)
+134	    print(f"\nRemoved {len(all_dirs_to_remove)} session directories.")
+135	
+136	    # Update metadata (remove tmp entries)
+137	    if tmp_entries:
+138	        metadata["work_dirs"] = keep_entries
+139	        with open(METADATA_FILE, "w", encoding="utf-8") as f:
+140	            json.dump(metadata, f, ensure_ascii=False, indent=2)
+141	        print(f"Updated {METADATA_FILE.name}: {len(work_dirs)} -> {len(keep_entries)} work_dirs.")
+142	
+143	
+144	if __name__ == "__main__":
+145	    main()
+```
+
+#### scripts/check_kimi_dependency_versions.py — main(function), load_project_table(function), load_project_version(function), find_pinned_dependency(function), check_kimi_dependency_versions.py(file)
+
+```python
+1	from __future__ import annotations
+2	
+3	import argparse
+4	import re
+5	import sys
+6	import tomllib
+7	from pathlib import Path
+8	
+9	
+10	def load_project_table(pyproject_path: Path) -> dict:
+11	    with pyproject_path.open("rb") as handle:
+12	        data = tomllib.load(handle)
+13	
+14	    project = data.get("project")
+15	    if not isinstance(project, dict):
+16	        raise ValueError(f"Missing [project] table in {pyproject_path}")
+17	
+18	    return project
+19	
+20	
+21	def load_project_version(pyproject_path: Path) -> str:
+22	    project = load_project_table(pyproject_path)
+23	    version = project.get("version")
+24	    if not isinstance(version, str) or not version:
+25	        raise ValueError(f"Missing project.version in {pyproject_path}")
+26	    return version
+27	
+28	
+29	def find_pinned_dependency(deps: list[str], name: str) -> str | None:
+30	    pattern = re.compile(rf"^{re.escape(name)}(?:\[[^\]]+\])?(.+)$")
+31	    for dep in deps:
+32	        match = pattern.match(dep)
+33	        if not match:
+34	            continue
+35	        spec = match.group(1)
+36	        pinned = re.match(r"^==(.+)$", spec)
+37	        if pinned:
+38	            return pinned.group(1)
+39	        return None
+40	    return None
+41	
+42	
+43	def main() -> int:
+44	    parser = argparse.ArgumentParser(description="Validate kimi-cli dependency versions.")
+45	    parser.add_argument("--root-pyproject", type=Path, required=True)
+46	    parser.add_argument("--kosong-pyproject", type=Path, required=True)
+47	    parser.add_argument("--pykaos-pyproject", type=Path, required=True)
+48	    args = parser.parse_args()
+49	
+50	    try:
+51	        root_project = load_project_table(args.root_pyproject)
+52	    except ValueError as exc:
+53	        print(f"error: {exc}", file=sys.stderr)
+54	        return 1
+55	
+56	    deps = root_project.get("dependencies", [])
+57	    if not isinstance(deps, list):
+58	        print(
+59	            f"error: project.dependencies must be a list in {args.root_pyproject}",
+60	            file=sys.stderr,
+61	        )
+62	        return 1
+63	
+64	    errors: list[str] = []
+65	    for name, pyproject_path in (
+66	        ("kosong", args.kosong_pyproject),
+67	        ("pykaos", args.pykaos_pyproject),
+68	    ):
+69	        try:
+70	            package_version = load_project_version(pyproject_path)
+71	        except ValueError as exc:
+72	            errors.append(str(exc))
+73	            continue
+74	
+75	        pinned_version = find_pinned_dependency(deps, name)
+76	        if pinned_version is None:
+77	            errors.append(f"Missing pinned dependency for {name} in {args.root_pyproject}.")
+78	            continue
+79	
+80	        if pinned_version != package_version:
+81	            errors.append(
+82	                f"{name} version mismatch: root depends on {pinned_version}, "
+83	                f"but {pyproject_path} has {package_version}."
+84	            )
+85	
+86	    if errors:
+87	        for error in errors:
+88	            print(f"error: {error}", file=sys.stderr)
+89	        return 1
+90	
+91	    print("ok: kimi-cli dependencies match workspace package versions")
+92	    return 0
+93	
+94	
+95	if __name__ == "__main__":
+96	    raise SystemExit(main())
+```
+
+#### web/src/hooks/wireTypes.ts — ToolCallState(type_alias), ToolApprovalState(references), ToolApprovalState(type_alias), TurnState(type_alias), StepState(references), StepState(type_alias), ToolCallState(references)
+
+```typescript
+321	};
+322	
+323	// Parsed tool call state for tracking
+324	export type ToolCallState = {
+325	  id: string;
+326	  name: string;
+327	  arguments: string;
+328	  argumentsComplete: boolean;
+329	  messageId?: string;
+330	  approval?: ToolApprovalState;
+331	  result?: {
+332	    isError: boolean;
+333	    output?: string;
+334	    message?: string;
+335	  };
+336	};
+337	
+338	export type ToolApprovalState = {
+339	  id: string;
+340	  action: string;
+341	  description: string;
+342	  sender: string;
+343	  toolCallId: string;
+344	  rpcMessageId?: string | number;
+345	  submitted?: boolean;
+346	  resolved?: boolean;
+347	  approved?: boolean;
+348	  reason?: string;
+349	  response?: unknown;
+350	  feedback?: string;
+351	  sourceKind?: "foreground_turn" | "background_agent" | null;
+352	  sourceDescription?: string | null;
+353	};
+354	
+355	// Content part for accumulated content
+356	export type ContentPart =
+
+... (gap) ...
+
+397	    };
+398	
+399	// Parsed turn state for tracking conversation
+400	export type TurnState = {
+401	  userInput: string;
+402	  steps: StepState[];
+403	  currentStep: number;
+404	  contextUsage: number;
+405	  isComplete: boolean;
+406	};
+407	
+408	export type StepState = {
+409	  n: number;
+410	  thinkingContent: string;
+411	  textContent: string;
+412	  toolCalls: ToolCallState[];
+413	  isStreaming: boolean;
+414	};
+415	
+416	/**
+417	 * Parse a JSONL file content into wire messages
+```
+
+#### scripts/build_vis.py — main(function), resolve_npm(function), check_node_version(function), has_required_vis_type_files(function), run_npm(function), build_vis.py(file)
+
+```python
+1	from __future__ import annotations
+2	
+3	import os
+4	import shutil
+5	import subprocess
+6	import sys
+7	from pathlib import Path
+8	
+9	ROOT = Path(__file__).resolve().parents[1]
+10	VIS_DIR = ROOT / "vis"
+11	DIST_DIR = VIS_DIR / "dist"
+12	NODE_MODULES = VIS_DIR / "node_modules"
+13	STATIC_DIR = ROOT / "src" / "kimi_cli" / "vis" / "static"
+14	
+15	
+16	REQUIRED_VIS_TYPE_FILES = (
+17	    NODE_MODULES / "vite" / "client.d.ts",
+18	    NODE_MODULES / "typescript" / "lib" / "typescript.d.ts",
+19	)
+20	
+21	
+22	def has_required_vis_type_files() -> bool:
+23	    return all(path.is_file() for path in REQUIRED_VIS_TYPE_FILES)
+24	
+25	
+26	def resolve_npm() -> str | None:
+27	    candidates = ["npm"]
+28	    if os.name == "nt":
+29	        candidates.extend(["npm.cmd", "npm.exe", "npm.bat"])
+30	    for candidate in candidates:
+31	        npm = shutil.which(candidate)
+32	        if npm:
+33	            return npm
+34	    return None
+35	
+36	
+37	def check_node_version() -> bool:
+38	    """Vite 7 requires Node.js ^20.19.0 || >=22.12.0."""
+39	    node = shutil.which("node")
+40	    if not node:
+41	        return False
+42	    try:
+43	        result = subprocess.run([node, "--version"], capture_output=True, text=True, check=False)
+44	        version = result.stdout.strip().lstrip("v")
+45	        parts = [int(x) for x in version.split(".")[:3]]
+46	        major, minor = parts[0], parts[1] if len(parts) > 1 else 0
+47	        ok = (major == 20 and minor >= 19) or (major >= 22 and (major > 22 or minor >= 12))
+48	        if not ok:
+49	            print(
+50	                f"Node.js ^20.19.0 or >=22.12.0 required (Vite 7), found v{version}",
+51	                file=sys.stderr,
+52	            )
+53	            return False
+54	    except Exception:
+55	        pass
+56	    return True
+57	
+58	
+59	def run_npm(npm: str, args: list[str]) -> int:
+60	    try:
+61	        result = subprocess.run([npm, *args], check=False)
+62	    except FileNotFoundError:
+63	        print(
+64	            "npm not found or failed to execute. Install Node.js (npm) and ensure it is on PATH.",
+65	            file=sys.stderr,
+66	        )
+67	        return 1
+68	    return result.returncode
+69	
+70	
+71	def main() -> int:
+72	    npm = resolve_npm()
+73	    if npm is None:
+74	        print("npm not found. Install Node.js (npm) to build the vis UI.", file=sys.stderr)
+75	        return 1
+76	
+77	    if not check_node_version():
+78	        return 1
+79	
+80	    needs_install = (not NODE_MODULES.exists()) or (not has_required_vis_type_files())
+81	    if needs_install:
+82	        if NODE_MODULES.exists():
+83	            print("vis dependencies are incomplete; reinstalling with devDependencies...")
+84	        returncode = run_npm(npm, ["--prefix", str(VIS_DIR), "ci", "--include=dev"])
+85	        if returncode != 0:
+86	            return returncode
+87	
+88	    returncode = run_npm(npm, ["--prefix", str(VIS_DIR), "run", "build"])
+89	    if returncode != 0:
+90	        return returncode
+91	
+92	    if not DIST_DIR.exists():
+93	        print("vis/dist not found after build. Check the vis build output.", file=sys.stderr)
+94	        return 1
+95	
+96	    if STATIC_DIR.exists():
+97	        shutil.rmtree(STATIC_DIR)
+98	    STATIC_DIR.parent.mkdir(parents=True, exist_ok=True)
+99	    shutil.copytree(DIST_DIR, STATIC_DIR)
+100	
+101	    print(f"Synced vis UI to {STATIC_DIR}")
+102	    return 0
+103	
+104	
+105	if __name__ == "__main__":
+106	    raise SystemExit(main())
+```
+
+#### src/kimi_cli/__main__.py — main(function), _prog_name(function), __main__.py(file)
+
+```python
+1	from __future__ import annotations
+2	
+3	import sys
+4	from collections.abc import Sequence
+5	from pathlib import Path
+6	
+7	
+8	def _prog_name() -> str:
+9	    return Path(sys.argv[0]).name or "kimi"
+10	
+11	
+12	def main(argv: Sequence[str] | None = None) -> int | str | None:
+13	    from kimi_cli.telemetry.crash import install_crash_handlers, set_phase
+14	    from kimi_cli.utils.proxy import normalize_proxy_env
+15	
+16	    # Install excepthook before anything else so startup-phase crashes are captured.
+17	    install_crash_handlers()
+18	    normalize_proxy_env()
+19	
+20	    args = list(sys.argv[1:] if argv is None else argv)
+21	
+22	    if len(args) == 1 and args[0] in {"--version", "-V"}:
+23	        from kimi_cli.constant import get_version
+24	
+25	        print(f"kimi, version {get_version()}")
+26	        return 0
+27	
+28	    from kimi_cli.cli import cli
+29	    from kimi_cli.utils.environment import GitBashNotFoundError
+30	
+31	    try:
+32	        return cli(args=args, prog_name=_prog_name())
+33	    except SystemExit as exc:
+34	        return exc.code
+35	    except GitBashNotFoundError as exc:
+36	        print(f"Error: {exc}", file=sys.stderr)
+37	        return 1
+38	    finally:
+39	        set_phase("shutdown")
+40	
+41	
+42	if __name__ == "__main__":
+43	    raise SystemExit(main())
+```
+
+#### scripts/build_web.py — main(function), resolve_npm(function), read_pyproject_version(function), build_web.py(file), has_required_web_type_files(function), run_npm(function), find_version_in_dist(function)
+
+```python
+1	from __future__ import annotations
+2	
+3	import os
+4	import shutil
+5	import subprocess
+6	import sys
+7	import tomllib
+8	from pathlib import Path
+9	
+10	ROOT = Path(__file__).resolve().parents[1]
+11	WEB_DIR = ROOT / "web"
+12	DIST_DIR = WEB_DIR / "dist"
+13	NODE_MODULES = WEB_DIR / "node_modules"
+14	STATIC_DIR = ROOT / "src" / "kimi_cli" / "web" / "static"
+15	
+16	STRICT_VERSION = os.environ.get("KIMI_WEB_STRICT_VERSION", "").lower() in {"1", "true", "yes"}
+17	
+18	REQUIRED_WEB_TYPE_FILES = (
+19	    NODE_MODULES / "vite" / "client.d.ts",
+20	    NODE_MODULES / "@types" / "node" / "index.d.ts",
+21	)
+22	
+23	
+24	def read_pyproject_version() -> str:
+25	    with (ROOT / "pyproject.toml").open("rb") as handle:
+26	        data = tomllib.load(handle)
+27	    return str(data["project"]["version"])
+28	
+29	
+30	def find_version_in_dist(version: str) -> bool:
+31	    search_suffixes = {".js", ".css", ".html", ".map"}
+32	    version_with_prefix = f"v{version}"
+33	    found_plain = False
+34	
+35	    for path in DIST_DIR.rglob("*"):
+36	        if not path.is_file() or path.suffix not in search_suffixes:
+37	            continue
+38	        try:
+39	            content = path.read_text(encoding="utf-8", errors="ignore")
+40	        except OSError:
+41	            continue
+42	        if version_with_prefix in content:
+43	            return True
+44	        if version in content:
+45	            found_plain = True
+46	
+47	    return found_plain
+48	
+49	
+50	def resolve_npm() -> str | None:
+51	    candidates = ["npm"]
+52	    if os.name == "nt":
+53	        candidates.extend(["npm.cmd", "npm.exe", "npm.bat"])
+54	    for candidate in candidates:
+55	        npm = shutil.which(candidate)
+56	        if npm:
+57	            return npm
+58	    return None
+59	
+60	
+61	def run_npm(npm: str, args: list[str]) -> int:
+62	    try:
+63	        result = subprocess.run([npm, *args], check=False)
+64	    except FileNotFoundError:
+65	        print(
+66	            "npm not found or failed to execute. Install Node.js (npm) and ensure it is on PATH.",
+67	            file=sys.stderr,
+68	        )
+69	        return 1
+70	    return result.returncode
+71	
+72	
+73	def has_required_web_type_files() -> bool:
+74	    return all(path.is_file() for path in REQUIRED_WEB_TYPE_FILES)
+75	
+76	
+77	def main() -> int:
+78	    npm = resolve_npm()
+79	    if npm is None:
+80	        print("npm not found. Install Node.js (npm) to build the web UI.", file=sys.stderr)
+81	        return 1
+82	
+83	    expected_version = read_pyproject_version()
+84	    explicit_expected = os.environ.get("KIMI_WEB_EXPECT_VERSION")
+85	    if explicit_expected and explicit_expected != expected_version:
+86	        print(
+87	            f"web version mismatch: pyproject={expected_version}, expected={explicit_expected}",
+88	            file=sys.stderr,
+89	        )
+90	        return 1
+91	
+92	    needs_install = (not NODE_MODULES.exists()) or (not has_required_web_type_files())
+93	    if needs_install:
+94	        if NODE_MODULES.exists():
+95	            print("web dependencies are incomplete; reinstalling with devDependencies...")
+96	        returncode = run_npm(npm, ["--prefix", str(WEB_DIR), "ci", "--include=dev"])
+97	        if returncode != 0:
+98	            return returncode
+99	
+100	    returncode = run_npm(npm, ["--prefix", str(WEB_DIR), "run", "build"])
+101	    if returncode != 0:
+102	        return returncode
+103	
+104	    if not DIST_DIR.exists():
+105	        print("web/dist not found after build. Check the web build output.", file=sys.stderr)
+106	        return 1
+107	    if STRICT_VERSION and not find_version_in_dist(expected_version):
+108	        print(
+109	            f"web version not found in build output; expected version {expected_version}",
+110	            file=sys.stderr,
+111	        )
+112	        return 1
+113	
+114	    if STATIC_DIR.exists():
+115	        shutil.rmtree(STATIC_DIR)
+116	    STATIC_DIR.parent.mkdir(parents=True, exist_ok=True)
+117	    shutil.copytree(DIST_DIR, STATIC_DIR)
+118	
+119	    print(f"Synced web UI to {STATIC_DIR}")
+120	    return 0
+121	
+122	
+123	if __name__ == "__main__":
+124	    raise SystemExit(main())
+```
+
+
+... (output truncated to budget; the source above is complete and verbatim — treat it as already Read. For any area not covered, run another codegraph_explore with the specific names — do NOT Read these files.)
+
+### turn start model call tool call loop stop condition abort resume retry event append
+
+## Flow (call path among the symbols you queried)
+
+1. model (src/kimi_cli/ui/shell/slash.py:185)
+   ↓ calls
+2. track (src/kimi_cli/telemetry/__init__.py:154)
+   ↓ calls
+3. append (src/kimi_cli/ui/shell/visualize/_blocks.py:211)
+
+## Dynamic-dispatch links among your symbols
+(synthesized — the indirect hops grep/Read would reconstruct; the `@file:line` is the wiring site)
+
+- WireViewer → TurnTree   [dynamic: renders <TurnTree>]
+- TurnTree → TurnNodeItem   [dynamic: renders <TurnNodeItem>]
+- Tool → Collapsible   [dynamic: renders <Collapsible>]
+- Confirmation → Alert   [dynamic: renders <Alert>]
+
+> Full source for these symbols is below — the call flow among them, followed by their bodies.
+## Exploration: turn start model call tool call loop stop condition abort resume retry event append
+
+Found 205 symbols across 57 files.
+
+### Blast radius — what depends on these (update/verify before editing)
+
+- `ToolCallPair` (vis/src/features/wire-viewer/tool-call-detail.tsx:13) — 1 caller in `vis/src/features/wire-viewer/tool-call-detail.tsx`; ⚠️ no covering tests found
+- `StepRetryEvent` (web/src/hooks/wireTypes.ts:57) — 3 callers in `web/src/hooks/useSessionStream.ts`, `web/src/hooks/wireTypes.ts`; ⚠️ no covering tests found
+- `Tool` (web/src/components/ai-elements/tool.tsx:55) — 1 caller in `web/src/features/chat/components/assistant-message.tsx`; ⚠️ no covering tests found
+- `stop` (src/kimi_cli/ui/shell/keyboard.py:58) — 2 callers in `src/kimi_cli/ui/shell/keyboard.py`, `src/kimi_cli/ui/shell/visualize/_live_view.py`; ⚠️ no covering tests found
+- `stop` (src/kimi_cli/ui/shell/startup.py:27) — 3 callers in `src/kimi_cli/cli/__init__.py`; tests: `tests/core/test_startup_progress.py`
+
+### Relationships
+
+**references:**
+- findPair → ToolCallPair
+- ToolCallDetail → ToolCallDetailProps
+- StepRetryPayload → StepRetryEvent
+- WireEvent → StepRetryEvent
+- Tool → ToolProps
+- extractEvent → WireEvent
+- QuestionDialog → QuestionDialogProps
+- QuestionDialog → QuestionItem
+- formatStepRetryStatus → StepRetryPayload
+- SessionsSidebarComponent → SessionsSidebarProps
+- ... and 24 more
+
+**calls:**
+- ToolCallDetail → findPair
+- ToolCallDetail → formatDuration
+- ToolCallDetail → formatTimestamp
+- ToolCallDetail → getCallArgs
+- ToolCallDetail → getResultOutput
+- ToolCallDetail → CopyableJson
+- WireViewer → ToolCallDetail
+- Tool → Collapsible
+- QuestionDialog → Collapsible
+- SessionsSidebarComponent → Collapsible
+- ... and 176 more
+
+### Source Code
+
+> The code below is the **verbatim, current on-disk source** of these files — re-read from disk on this call and line-numbered, byte-for-byte identical to what the Read tool returns. It is NOT a summary, outline, or stale cache. Treat each block as a Read you have already performed: do not Read a file shown here.
+
+#### src/kimi_cli/web/runner/process.py — calls(calls), instantiates(instantiates), _emit_status(calls), _broadcast(calls), create_task(calls), _handle_out_message(calls), get(calls), __init__(method), start(method), _read_loop(calls), +40 more
+
+```python
+75	    - `_ws_lock` guards WebSocket state.
+76	    """
+77	
+78	    def __init__(self, session_id: UUID) -> None:
+79	        """Initialize a session process."""
+80	        self.session_id = session_id
+81	        self._in_flight_prompt_ids: set[str] = set()
+82	        self._status_seq = 0
+83	        self._worker_id: str | None = None
+84	        self._status = SessionStatus(
+85	            session_id=self.session_id,
+86	            state="stopped",
+87	            seq=self._status_seq,
+88	            worker_id=self._worker_id,
+89	            reason=None,
+90	            detail=None,
+91	            updated_at=datetime.now(UTC),
+92	        )
+93	        self._process: asyncio.subprocess.Process | None = None
+94	        self._websockets: set[WebSocket] = set()
+95	        self._websocket_count = 0
+96	        self._replay_buffers: dict[WebSocket, list[str]] = {}
+97	        self._read_task: asyncio.Task[None] | None = None
+98	        self._expecting_exit = False
+99	        self._lock = asyncio.Lock()
+100	        self._ws_lock = asyncio.Lock()
+101	        self._sent_files: set[str] = set()
+102	
+103	    @property
+104	    def is_alive(self) -> bool:
+105	        """Whether the worker subprocess exists and has not exited."""
+106	        process = self._process
+107	        return process is not None and process.returncode is None
+108	
+109	    @property
+110	    def is_running(self) -> bool:
+111	        """Backward-compatible name: indicates worker liveness."""
+112	        return self.is_alive
+113	
+114	    @property
+115	    def is_busy(self) -> bool:
+116	        """Whether the session is currently processing a prompt."""
+117	        return len(self._in_flight_prompt_ids) > 0
+118	
+119	    def clear_in_flight(self) -> None:
+120	        """Clear stale in-flight prompt IDs (e.g. after an error)."""
+121	        self._in_flight_prompt_ids.clear()
+122	
+123	    @property
+124	    def status(self) -> SessionStatus:
+125	        """Current runtime status snapshot."""
+126	        return self._status
+127	
+128	    @property
+129	    def websocket_count(self) -> int:
+130	        """Get the number of connected WebSockets."""
+131	        return self._websocket_count
+132	
+133	    async def send_status_snapshot(self, ws: WebSocket) -> None:
+134	        """Send the current status snapshot to a specific WebSocket."""
+135	        await ws.send_text(new_session_status_message(self._status).model_dump_json())
+136	
+137	    def _build_status(
+138	        self,
+139	        state: SessionState,
+140	        reason: str | None,
+141	        detail: str | None,
+142	    ) -> SessionStatus | None:
+143	        """Build a new status object if different from current."""
+144	        current = self._status
+145	        if (
+146	            current.state == state
+147	            and current.reason == reason
+148	            and current.detail == detail
+149	            and current.worker_id == self._worker_id
+150	        ):
+151	            return None
+152	        self._status_seq += 1
+153	        status = SessionStatus(
+154	            session_id=self.session_id,
+155	            state=state,
+156	            seq=self._status_seq,
+157	            worker_id=self._worker_id,
+158	            reason=reason,
+159	            detail=detail,
+160	            updated_at=datetime.now(UTC),
+161	        )
+162	        self._status = status
+163	        return status
+164	
+165	    async def _emit_status(
+166	        self,
+167	        state: SessionState,
+168	        *,
+169	        reason: str | None = None,
+170	        detail: str | None = None,
+171	    ) -> None:
+172	        """Emit a status update if different from current."""
+173	        status = self._build_status(state, reason, detail)
+174	        if status is None:
+175	            return
+176	        await self._broadcast(new_session_status_message(status).model_dump_json())
+177	
+178	    async def start(
+179	        self,
+180	        *,
+181	        reason: str | None = None,
+182	        detail: str | None = None,
+183	        restart_started_at: float | None = None,
+184	    ) -> None:
+185	        """Start the KimiCLI subprocess."""
+186	        async with self._lock:
+187	            if self.is_alive:
+188	                if self._read_task is None or self._read_task.done():
+189	                    self._read_task = asyncio.create_task(self._read_loop())
+190	                return
+191	
+192	            self._in_flight_prompt_ids.clear()
+193	            self._expecting_exit = False
+194	            self._worker_id = str(uuid4())
+195	
+196	            # 16MB buffer for large messages (e.g., base64-encoded images)
+197	            STREAM_LIMIT = 16 * 1024 * 1024
+198	
+199	            if getattr(sys, "frozen", False):
+200	                worker_cmd = [sys.executable, "__web-worker", str(self.session_id)]
+201	            else:
+202	                worker_cmd = [
+203	                    sys.executable,
+204	                    "-m",
+205	                    "kimi_cli.web.runner.worker",
+206	                    str(self.session_id),
+207	                ]
+208	
+209	            self._process = await asyncio.create_subprocess_exec(
+210	                *worker_cmd,
+211	                stdin=asyncio.subprocess.PIPE,
+212	                stdout=asyncio.subprocess.PIPE,
+213	                stderr=asyncio.subprocess.PIPE,
+214	                limit=STREAM_LIMIT,
+215	                env=get_clean_env(),
+216	            )
+217	
+218	            self._read_task = asyncio.create_task(self._read_loop())
+219	            if restart_started_at is not None:
+220	                elapsed_ms = int((time.perf_counter() - restart_started_at) * 1000)
+221	                detail = f"restart_ms={elapsed_ms}"
+222	                await self._emit_status("idle", reason=reason or "start", detail=detail)
+223	                await self._emit_restart_notice(reason=reason, restart_ms=elapsed_ms)
+224	            else:
+225	                await self._emit_status("idle", reason=reason or "start", detail=None)
+226	
+227	    async def stop(self) -> None:
+228	        """Stop the session: terminate worker and close all WebSockets."""
+229	        await self.stop_worker(reason="stop")
+230	        await self._close_all_websockets()
+231	
+232	    async def stop_worker(
+233	        self,
+234	        *,
+235	        reason: str | None = None,
+236	        emit_status: bool = True,
+237	    ) -> None:
+238	        """Stop only the worker subprocess, keeping WebSockets connected."""
+239	        async with self._lock:
+240	            self._expecting_exit = True
+241	            if self._process is not None:
+242	                if self._process.returncode is None:
+243	                    self._process.terminate()
+244	                try:
+245	                    await asyncio.wait_for(self._process.wait(), timeout=10.0)
+246	                except TimeoutError:
+247	                    self._process.kill()
+248	                    await self._process.wait()
+249	                self._process = None
+250	
+251	            if self._read_task is not None:
+252	                self._read_task.cancel()
+253	                with contextlib.suppress(asyncio.CancelledError):
+254	                    await self._read_task
+255	                self._read_task = None
+256	
+257	            self._in_flight_prompt_ids.clear()
+258	            self._worker_id = None
+259	            self._expecting_exit = False
+260	            if emit_status:
+261	                await self._emit_status("stopped", reason=reason or "stop")
+262	
+263	    async def restart_worker(self, *, reason: str | None = None) -> None:
+264	        """Restart the worker subprocess without disconnecting WebSockets."""
+265	        started_at = time.perf_counter()
+266	        await self._emit_status("restarting", reason=reason or "restart")
+267	        await self.stop_worker(reason="restart", emit_status=False)
+268	        await self.start(reason=reason or "restart", restart_started_at=started_at)
+269	
+270	    async def _emit_restart_notice(self, *, reason: str | None, restart_ms: int) -> None:
+271	        """Emit a restart notice to all WebSockets."""
+272	        label = "Session restarted"
+273	        if reason == "config_update":
+274	            label = "Session restarted due to config update"
+275	        payload = SessionNoticePayload(
+276	            text=f"{label} · {restart_ms}ms",
+277	            kind="restart",
+278	            reason=reason,
+279	            restart_ms=restart_ms,
+280	        )
+281	        event = SessionNoticeEvent(payload=payload)
+282	        await self._broadcast(
+283	            json.dumps(
+284	                {
+285	                    "jsonrpc": "2.0",
+286	                    "method": "event",
+287	                    "params": event.model_dump(mode="json"),
+288	                },
+289	                ensure_ascii=False,
+290	            )
+291	        )
+292	
+293	    async def _read_loop(self) -> None:
+294	        """Read messages from subprocess stdout and broadcast to WebSockets."""
+295	        assert self._process is not None
+296	        assert self._process.stdout is not None
+297	        assert self._process.stderr is not None
+298	
+299	        try:
+300	            while True:
+301	                line = await self._process.stdout.readline()
+302	                if not line:
+303	                    if self._process.stdout.at_eof():
+304	                        if self._expecting_exit:
+305	                            break
+306	                        stderr = await self._process.stderr.read()
+307	                        if not stderr:
+308	                            stderr = b"No stderr"
+309	                        # Clear in-flight IDs before broadcasting so that
+310	                        # is_busy is already False when the frontend reacts
+311	                        # to the error and sends a new prompt.
+312	                        self._in_flight_prompt_ids.clear()
+313	                        await self._broadcast(
+314	                            JSONRPCErrorResponse(
+315	                                id=str(uuid4()),
+316	                                error=JSONRPCErrorObject(
+317	                                    code=self._process.returncode or -1,
+318	                                    message=stderr.decode("utf-8"),
+319	                                ),
+320	                            ).model_dump_json()
+321	                        )
+322	                        logger.warning(
+323	                            f"Process exited with {self._process.returncode}: "
+324	                            f"{stderr.decode('utf-8')}"
+325	                        )
+326	                        await self._emit_status(
+327	                            "error",
+328	                            reason="process_exit",
+329	                            detail=stderr.decode("utf-8"),
+330	                        )
+331	                        break
+332	                    else:
+333	                        continue
+334	
+335	                await self._broadcast(line.decode("utf-8").rstrip("\n"))
+336	
+337	                # Handle out message
+338	                try:
+339	                    msg = json.loads(line)
+340	                    match msg.get("method"):
+341	                        case "event":
+342	                            msg["params"] = deserialize_wire_message(msg["params"])
+343	                            await self._handle_out_message(JSONRPCEventMessage.model_validate(msg))
+344	                        case "request":
+345	                            msg["params"] = deserialize_wire_message(msg["params"])
+346	                            await self._handle_out_message(
+347	                                JSONRPCRequestMessage.model_validate(msg)
+348	                            )
+349	                        case _:
+350	                            if msg.get("error"):
+351	                                await self._handle_out_message(
+352	                                    JSONRPCErrorResponse.model_validate(msg)
+353	                                )
+354	                            else:
+355	                                await self._handle_out_message(
+356	                                    JSONRPCSuccessResponse.model_validate(msg)
+357	                                )
+358	                except json.JSONDecodeError:
+359	                    logger.error(f"Invalid JSONRPC out message: {line}")
+360	
+361	        except asyncio.CancelledError:
+362	            raise
+363	        except Exception as e:
+364	            logger.warning(f"Unexpected error in read loop: {e.__class__.__name__} {e}")
+365	            self._in_flight_prompt_ids.clear()
+366	            await self._emit_status("error", reason="read_loop_error", detail=str(e))
+367	
+368	    async def _handle_out_message(self, message: JSONRPCOutMessage) -> None:
+369	        """Handle outbound message from worker."""
+370	        match message:
+371	            case JSONRPCSuccessResponse():
+372	                was_busy = self.is_busy
+373	                if message.id in self._in_flight_prompt_ids:
+374	                    self._in_flight_prompt_ids.remove(message.id)
+375	                if was_busy and not self.is_busy:
+376	                    await self._emit_status("idle", reason="prompt_complete")
+377	            case JSONRPCErrorResponse():
+378	                was_busy = self.is_busy
+379	                if message.id in self._in_flight_prompt_ids:
+380	                    self._in_flight_prompt_ids.remove(message.id)
+381	                if was_busy and not self.is_busy:
+382	                    await self._emit_status("idle", reason="prompt_error")
+383	            case _:
+384	                return
+385	
+386	    async def _encode_uploaded_files(self) -> AsyncGenerator[ContentPart]:
+387	        """Encode uploaded files for sending to the model."""
+388	        session = load_session_by_id(self.session_id)
+389	        assert session is not None
+390	
+391	        uploads_dir = session.kimi_cli_session.dir / "uploads"
+392	        if not uploads_dir.exists():
+393	            return
+394	
+395	        # Load .sent marker left by fork to avoid re-sending inherited files.
+396	        # The marker is kept (not deleted) so it survives process restarts.
+397	        sent_marker = uploads_dir / ".sent"
+398	        if sent_marker.exists():
+399	            try:
+400	                already_sent = json.loads(sent_marker.read_text(encoding="utf-8"))
+401	                self._sent_files.update(already_sent)
+402	            except Exception:
+403	                pass
+404	
+405	        all_files = sorted(
+406	            (f for f in uploads_dir.iterdir() if f.name != ".sent"),
+407	            key=lambda x: x.name,
+408	        )
+409	        files = [f for f in all_files if f.name not in self._sent_files]
+410	
+411	        if not files:
+412	            return
+413	
+414	        # Build file list with paths and mime types
+415	        file_infos: list[tuple[Path, str]] = []
+416	        for file in files:
+417	            mime_type, _ = mimetypes.guess_type(file.name)
+418	            file_infos.append((file, mime_type or "application/octet-stream"))
+419	
+420	        # Output file list summary
+421	        file_list_lines = ["<uploaded_files>"]
+422	        for idx, (file, _) in enumerate(file_infos, start=1):
+423	            file_list_lines.append(f"{idx}. {file}")
+424	        file_list_lines.append("</uploaded_files>")
+425	        yield TextPart(text="\n".join(file_list_lines) + "\n\n")
+426	
+427	        # Text file extensions
+428	        text_extensions = {
+429	            ".txt",
+430	            ".md",
+431	            ".json",
+432	            ".yaml",
+433	            ".yml",
+434	            ".xml",
+435	            ".html",
+436	            ".css",
+437	            ".js",
+438	            ".ts",
+439	            ".py",
+440	            ".sh",
+441	            ".csv",
+442	            ".log",
+443	            ".rst",
+444	            ".toml",
+445	            ".ini",
+446	        }
+447	
+448	        # Check model capabilities
+449	        config = load_config()
+450	        capabilities: set[ModelCapability] = set()
+451	        if config.default_model:
+452	            capabilities = config.models[config.default_model].capabilities or set()
+453	        is_vision = "image_in" in capabilities
+454	        is_video_in = "video_in" in capabilities
+455	
+456	        # Process each file
+457	        for file, mime_type in file_infos:
+458	            file_path = str(file)
+459	            ext = file.suffix.lower()
+460	
+461	            if is_vision and mime_type.startswith("image/"):
+462	                try:
+463	                    content = file.read_bytes()
+464	                    with Image.open(io.BytesIO(content)) as img:
+465	                        pil_img: PILImage = img
+466	                        width, height = pil_img.size
+467	                        max_side = max(width, height)
+468	                        if max_side > 4096:
+469	                            scale = 4096 / max_side
+470	                            new_size = (int(width * scale), int(height * scale))
+471	                            pil_img = pil_img.resize(  # pyright: ignore[reportUnknownMemberType]
+472	                                new_size
+473	                            )
+474	                        buffer = io.BytesIO()
+475	                        pil_img.save(buffer, format="PNG")
+476	                        encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+477	                        tag = f'<image path="{file_path}" content_type="{mime_type}">'
+478	                        yield TextPart(text=tag)
+479	                        yield ImageURLPart(
+480	                            image_url=ImageURLPart.ImageURL(url=f"data:image/png;base64,{encoded}")
+481	                        )
+482	                        yield TextPart(text="</image>\n\n")
+483	                except Exception:
+484	                    # Skip files that fail to encode - don't block the upload
+485	                    pass
+486	            elif is_video_in and mime_type.startswith("video/"):
+487	                # For video files, emit a <video> tag for frontend display but don't embed content.
+488	                # The agent will use ReadMediaFile tool to read it, which handles video uploads
+489	                # properly.
+490	                yield TextPart(text=f'<video path="{file_path}" content_type="{mime_type}">')
+491	                yield TextPart(text="</video>\n\n")
+492	            elif ext in text_extensions or mime_type.startswith("text/"):
+493	                try:
+494	                    content = file.read_bytes()
+495	                    text_content = content.decode("utf-8", errors="replace")
+496	                    yield TextPart(text=f'<document path="{file_path}" content_type="{mime_type}">')
+497	                    yield TextPart(text=text_content)
+498	                    yield TextPart(text="</document>\n\n")
+499	                except Exception:
+500	                    # Skip files that fail to decode - don't block the upload
+501	                    pass
+502	
+503	        # Mark files as sent
+504	        for file in files:
+505	            self._sent_files.add(file.name)
+506	
+507	    async def _handle_in_message(self, message: JSONRPCInMessage) -> str | None:
+508	        """Handle inbound message to worker, encoding uploaded files."""
+509	        match message:
+510	            case JSONRPCPromptMessage():
+511	                user_input: list[ContentPart] = []
+512	                async for part in self._encode_uploaded_files():
+513	                    user_input.append(part)
+514	                # Special marker for file-only uploads
+515	                if isinstance(message.params.user_input, str):
+516	                    if message.params.user_input != "KIMI_FILE_UPLOAD_WITHOUT_MESSAGE":
+517	                        user_input.append(TextPart(text=message.params.user_input))
+518	                else:
+519	                    user_input += message.params.user_input
+520	                return json.dumps(
+521	                    {
+522	                        "jsonrpc": "2.0",
+523	                        "method": "prompt",
+524	                        "id": message.id,
+525	                        "params": {
+526	                            "user_input": [part.model_dump(mode="json") for part in user_input],
+527	                        },
+528	                    },
+529	                    ensure_ascii=False,
+530	                )
+531	            case _:
+532	                return None
+533	        return None
+534	
+535	    async def _broadcast(self, message: str) -> None:
+536	        """Broadcast a message to all connected WebSockets."""
+537	        disconnected: set[WebSocket] = set()
+538	
+539	        async with self._ws_lock:
+540	            websockets = list(self._websockets)
+541	            to_send: list[WebSocket] = []
+542	            for ws in websockets:
+543	                buffer = self._replay_buffers.get(ws)
+544	                if buffer is not None:
+545	                    buffer.append(message)
+546	                else:
+547	                    to_send.append(ws)
+548	
+549	        for ws in to_send:
+550	            try:
+551	                if ws.client_state == WebSocketState.CONNECTED:
+552	                    await ws.send_text(message)
+553	                else:
+554	                    disconnected.add(ws)
+555	            except Exception as e:
+556	                logger.warning(f"websocket failed: {e.__class__.__name__} {e}")
+557	                disconnected.add(ws)
+558	
+559	        if disconnected:
+560	            async with self._ws_lock:
+561	                self._websockets -= disconnected
+562	                self._websocket_count = len(self._websockets)
+563	                for ws in disconnected:
+564	                    self._replay_buffers.pop(ws, None)
+565	            logger.debug(
+566	                f"Broadcast: removed {len(disconnected)} disconnected ws, "
+567	                f"remaining={self._websocket_count}"
+568	            )
+569	
+570	    async def add_websocket_and_begin_replay(self, ws: WebSocket) -> None:
+
+... (output truncated to budget; the source above is complete and verbatim — treat it as already Read. For any area not covered, run another codegraph_explore with the specific names — do NOT Read these files.)
+
+### how does a user turn move through context building, model streaming, tool execution, approval, and persistence?
+
+## Dynamic-dispatch links among your symbols
+(synthesized — the indirect hops grep/Read would reconstruct; the `@file:line` is the wiring site)
+
+- WireViewer → TurnTree   [dynamic: renders <TurnTree>]
+- TurnTree → TurnNodeItem   [dynamic: renders <TurnNodeItem>]
+- Tool → Collapsible   [dynamic: renders <Collapsible>]
+
+> Full source for these symbols is below — the call flow among them, followed by their bodies.
+## Exploration: how does a user turn move through context building, model streaming, tool execution, approval, and persistence?
+
+Found 133 symbols across 42 files.
+
+### Blast radius — what depends on these (update/verify before editing)
+
+- `ToolbarContextIndicatorProps` (web/src/features/chat/components/prompt-toolbar/toolbar-context.tsx:17) — 1 caller in `web/src/features/chat/components/prompt-toolbar/toolbar-context.tsx`; ⚠️ no covering tests found
+- `Context` (src/kimi_cli/soul/context.py:20) — 128 callers in `src/kimi_cli/app.py`, `src/kimi_cli/soul/kimisoul.py`, `src/kimi_cli/soul/slash.py`, `src/kimi_cli/subagents/core.py` +1 more; tests: `examples/custom-kimi-soul/main.py`, `examples/kimi-psql/main.py`, `tests/acp/test_session_notifications.py`, `tests/background/test_manager.py` +26
+- `Approval` (src/kimi_cli/soul/approval.py:81) — 49 callers in `src/kimi_cli/acp/tools.py`, `src/kimi_cli/plugin/tool.py`, `src/kimi_cli/soul/agent.py`, `src/kimi_cli/tools/background/__init__.py` +4 more; tests: `tests/conftest.py`, `tests/core/test_approval_afk.py`, `tests/core/test_kimisoul_ralph_loop.py`, `tests/core/test_kimisoul_steer.py` +7
+- `Tool` (web/src/components/ai-elements/tool.tsx:55) — 1 caller in `web/src/features/chat/components/assistant-message.tsx`; ⚠️ no covering tests found
+
+### Relationships
+
+**references:**
+- ToolbarContextIndicatorProps → TokenUsage
+- ToolbarContextIndicatorComponent → ToolbarContextIndicatorProps
+- Context → ContextProps
+- ContextProps → ContextSchema
+- PromptInputHoverCard → PromptInputHoverCardProps
+- ContextSchema → ModelId
+- ContextSchema → TokenUsage
+- ContextValue → ContextSchema
+- Tool → ToolProps
+- ChatWorkspaceProps → TokenUsage
+- ... and 2 more
+
+**calls:**
+- Context → HoverCard
+- PromptInputHoverCard → HoverCard
+- ToolbarContextIndicatorComponent → HoverCard
+- PromptInputAttachment → PromptInputHoverCard
+- ToolbarContextIndicatorComponent → HoverCardTrigger
+- ToolbarContextIndicatorComponent → ContextProgressIcon
+- ToolbarContextIndicatorComponent → HoverCardContent
+- ToolbarContextIndicatorComponent → Progress
+- ToolbarContextIndicatorComponent → RawUsageRow
+- Tool → Collapsible
+- ... and 42 more
+
+### Source Code
+
+> The code below is the **verbatim, current on-disk source** of these files — re-read from disk on this call and line-numbered, byte-for-byte identical to what the Read tool returns. It is NOT a summary, outline, or stale cache. Treat each block as a Read you have already performed: do not Read a file shown here.
+
+#### src/kimi_cli/soul/kimisoul.py — imports(imports), __init__.py(imports), agent.py(imports), Context(imports), slash.py(imports), context(method)
+
+```python
+1	from __future__ import annotations
+2	
+3	import asyncio
+4	import time
+5	import uuid
+6	from collections.abc import Awaitable, Callable, Sequence
+7	from dataclasses import dataclass
+8	from pathlib import Path
+9	from typing import TYPE_CHECKING, Any, Literal, cast
+10	
+11	import kosong
+12	import tenacity
+13	from kosong import StepResult
+14	from kosong.chat_provider import (
+15	    APIConnectionError,
+16	    APIEmptyResponseError,
+17	    APIStatusError,
+18	    APITimeoutError,
+19	    RetryableChatProvider,
+20	)
+21	from kosong.message import Message
+22	from tenacity import RetryCallState, retry_if_exception, stop_after_attempt, wait_exponential_jitter
+23	
+24	from kimi_cli.approval_runtime import (
+25	    ApprovalSource,
+26	    get_current_approval_source_or_none,
+27	    reset_current_approval_source,
+28	    set_current_approval_source,
+29	)
+30	from kimi_cli.background import build_active_task_snapshot
+31	from kimi_cli.hooks.engine import HookEngine
+32	from kimi_cli.llm import ModelCapability
+33	from kimi_cli.notifications import (
+34	    NotificationView,
+35	    build_notification_message,
+36	    extract_notification_ids,
+37	)
+38	from kimi_cli.skill import Skill, read_skill_text
+39	from kimi_cli.skill.flow import Flow, FlowEdge, FlowNode, parse_choice
+40	from kimi_cli.soul import (
+41	    LLMNotSet,
+42	    LLMNotSupported,
+43	    MaxStepsReached,
+44	    Soul,
+45	    StatusSnapshot,
+46	    wire_send,
+47	)
+48	from kimi_cli.soul.agent import Agent, Runtime
+49	from kimi_cli.soul.compaction import (
+50	    CompactionResult,
+51	    SimpleCompaction,
+52	    estimate_text_tokens,
+53	    should_auto_compact,
+54	)
+55	from kimi_cli.soul.context import Context
+56	from kimi_cli.soul.dynamic_injection import (
+57	    DynamicInjection,
+58	    DynamicInjectionProvider,
+59	    normalize_history,
+60	)
+61	from kimi_cli.soul.dynamic_injections.afk_mode import AfkModeInjectionProvider
+62	from kimi_cli.soul.dynamic_injections.plan_mode import PlanModeInjectionProvider
+63	from kimi_cli.soul.message import check_message, system, system_reminder, tool_result_to_message
+64	from kimi_cli.soul.slash import registry as soul_slash_registry
+65	from kimi_cli.soul.toolset import KimiToolset
+66	from kimi_cli.tools.dmail import NAME as SendDMail_NAME
+67	from kimi_cli.tools.utils import ToolRejectedError
+68	from kimi_cli.utils.logging import logger
+69	from kimi_cli.utils.slashcmd import SlashCommand, parse_slash_command_call
+70	from kimi_cli.wire.file import WireFile
+71	from kimi_cli.wire.types import (
+72	    CompactionBegin,
+73	    CompactionEnd,
+74	    ContentPart,
+75	    MCPLoadingBegin,
+76	    MCPLoadingEnd,
+77	    StatusUpdate,
+78	    SteerInput,
+79	    StepBegin,
+80	    StepInterrupted,
+81	    StepRetry,
+82	    TextPart,
+83	    ToolResult,
+84	    TurnBegin,
+85	    TurnEnd,
+86	)
+87	
+88	if TYPE_CHECKING:
+
+... (gap) ...
+
+504	        return self._runtime
+505	
+506	    @property
+507	    def context(self) -> Context:
+508	        return self._context
+509	
+510	    @property
+511	    def _context_usage(self) -> float:
+```
+
+#### src/kimi_cli/ui/shell/slash.py — calls(calls), ensure_kimi_soul(function), model(function), ensure_kimi_soul(calls), references(references), instantiates(instantiates)
+
+```python
+36	shell_mode_registry = SlashCommandRegistry[ShellSlashCmdFunc]()
+37	
+38	
+39	def ensure_kimi_soul(app: Shell) -> KimiSoul | None:
+40	    if not isinstance(app.soul, KimiSoul):
+41	        console.print("[red]KimiSoul required[/red]")
+42	        return None
+43	    return app.soul
+44	
+45	
+46	@registry.command(aliases=["quit"])
+
+... (gap) ...
+
+182	
+183	
+184	@registry.command
+185	async def model(app: Shell, args: str):
+186	    """Switch LLM model or thinking mode"""
+187	    from kimi_cli.llm import derive_model_capabilities
+188	
+189	    soul = ensure_kimi_soul(app)
+190	    if soul is None:
+191	        return
+192	    config = soul.runtime.config
+193	
+194	    await refresh_managed_models(config)
+195	
+196	    if not config.models:
+197	        console.print('[yellow]No models configured, send "/login" to login.[/yellow]')
+198	        return
+199	
+200	    if not config.is_from_default_location:
+201	        console.print(
+202	            "[yellow]Model switching requires the default config file; "
+203	            "restart without --config/--config-file.[/yellow]"
+204	        )
+205	        return
+206	
+207	    # Find current model/thinking from runtime (may be overridden by --model/--thinking)
+208	    curr_model_cfg = soul.runtime.llm.model_config if soul.runtime.llm else None
+209	    curr_model_name: str | None = None
+210	    if curr_model_cfg is not None:
+211	        for name, model_cfg in config.models.items():
+212	            if model_cfg == curr_model_cfg:
+213	                curr_model_name = name
+214	                break
+215	    curr_thinking = soul.thinking
+216	
+217	    # Step 1: Select model
+218	    model_choices: list[tuple[str, str]] = []
+219	    for name in sorted(config.models):
+220	        model_cfg = config.models[name]
+221	        provider_label = get_platform_name_for_provider(model_cfg.provider) or model_cfg.provider
+222	        marker = " (current)" if name == curr_model_name else ""
+223	        display = model_cfg.display_name or model_cfg.model
+224	        label = f"{display} ({provider_label}){marker}"
+225	        model_choices.append((name, label))
+226	
+227	    try:
+228	        selected_model_name = await ChoiceInput(
+229	            message="Select a model (↑↓ navigate, Enter select, Ctrl+C cancel):",
+230	            options=model_choices,
+231	            default=curr_model_name or model_choices[0][0],
+232	        ).prompt_async()
+233	    except (EOFError, KeyboardInterrupt):
+234	        return
+235	
+236	    if not selected_model_name:
+237	        return
+238	
+239	    selected_model_cfg = config.models[selected_model_name]
+240	    selected_provider = config.providers.get(selected_model_cfg.provider)
+241	    if selected_provider is None:
+242	        console.print(f"[red]Provider not found: {selected_model_cfg.provider}[/red]")
+243	        return
+244	
+245	    # Step 2: Determine thinking mode
+246	    capabilities = derive_model_capabilities(selected_model_cfg)
+247	    new_thinking: bool
+248	
+249	    if "always_thinking" in capabilities:
+250	        new_thinking = True
+251	    elif "thinking" in capabilities:
+252	        thinking_choices: list[tuple[str, str]] = [
+253	            ("off", "off" + (" (current)" if not curr_thinking else "")),
+254	            ("on", "on" + (" (current)" if curr_thinking else "")),
+255	        ]
+256	        try:
+257	            thinking_selection = await ChoiceInput(
+258	                message="Enable thinking mode? (↑↓ navigate, Enter select, Ctrl+C cancel):",
+259	                options=thinking_choices,
+260	                default="on" if curr_thinking else "off",
+261	            ).prompt_async()
+262	        except (EOFError, KeyboardInterrupt):
+263	            return
+264	
+265	        if not thinking_selection:
+266	            return
+267	
+268	        new_thinking = thinking_selection == "on"
+269	    else:
+270	        new_thinking = False
+271	
+272	    # Check if anything changed
+273	    model_changed = curr_model_name != selected_model_name
+274	    thinking_changed = curr_thinking != new_thinking
+275	    selected_display = selected_model_cfg.display_name or selected_model_cfg.model
+276	
+277	    if not model_changed and not thinking_changed:
+278	        console.print(
+279	            f"[yellow]Already using {selected_display} "
+280	            f"with thinking {'on' if new_thinking else 'off'}.[/yellow]"
+281	        )
+282	        return
+283	
+284	    # Save and reload
+285	    prev_model = config.default_model
+286	    prev_thinking = config.default_thinking
+287	    config.default_model = selected_model_name
+288	    config.default_thinking = new_thinking
+289	    try:
+290	        config_for_save = load_config()
+291	        config_for_save.default_model = selected_model_name
+292	        config_for_save.default_thinking = new_thinking
+293	        save_config(config_for_save)
+294	    except (ConfigError, OSError) as exc:
+295	        config.default_model = prev_model
+296	        config.default_thinking = prev_thinking
+297	        console.print(f"[red]Failed to save config: {exc}[/red]")
+298	        return
+299	
+300	    from kimi_cli.telemetry import track
+301	
+302	    if model_changed:
+303	        track("model_switch", model=selected_model_name)
+304	    if thinking_changed:
+305	        track("thinking_toggle", enabled=new_thinking)
+306	    console.print(
+307	        f"[green]Switched to {selected_display} "
+308	        f"with thinking {'on' if new_thinking else 'off'}. "
+309	        "Reloading...[/green]"
+310	    )
+311	    raise Reload(session_id=soul.runtime.session.id)
+312	
+313	
+314	@registry.command
+```
+
+#### src/kimi_cli/soul/context.py — calls(calls), _parse_context_line(calls), _apply_context_record(calls), clear(calls), __init__(method), restore(method), history(method), token_count(method), token_count_with_pending(method), n_checkpoints(method), +13 more
+
+```python
+18	
+19	
+20	class Context:
+21	    def __init__(self, file_backend: Path):
+22	        self._file_backend = file_backend
+23	        self._history: list[Message] = []
+24	        self._token_count: int = 0
+25	        self._pending_token_estimate: int = 0
+26	        self._next_checkpoint_id: int = 0
+27	        """The ID of the next checkpoint, starting from 0, incremented after each checkpoint."""
+28	        self._system_prompt: str | None = None
+29	
+30	    async def restore(self) -> bool:
+31	        logger.debug("Restoring context from file: {file_backend}", file_backend=self._file_backend)
+32	        if self._history:
+33	            logger.error("The context storage is already modified")
+34	            raise RuntimeError("The context storage is already modified")
+35	        if not self._file_backend.exists():
+36	            logger.debug("No context file found, skipping restoration")
+37	            return False
+38	        if self._file_backend.stat().st_size == 0:
+39	            logger.debug("Empty context file, skipping restoration")
+40	            return False
+41	
+42	        messages_after_last_usage: list[Message] = []
+43	        async with aiofiles.open(self._file_backend, encoding="utf-8", errors="replace") as f:
+44	            line_no = 0
+45	            async for line in f:
+46	                line_no += 1
+47	                if not line.strip():
+48	                    continue
+49	                line_json = self._parse_context_line(
+50	                    line,
+51	                    file_backend=self._file_backend,
+52	                    line_no=line_no,
+53	                )
+54	                if line_json is None:
+55	                    continue
+56	                self._apply_context_record(
+57	                    line_json,
+58	                    history=self._history,
+59	                    messages_after_last_usage=messages_after_last_usage,
+60	                    file_backend=self._file_backend,
+61	                    line_no=line_no,
+62	                )
+63	
+64	        self._pending_token_estimate = estimate_text_tokens(messages_after_last_usage)
+65	        return True
+66	
+67	    @property
+68	    def history(self) -> Sequence[Message]:
+69	        return self._history
+70	
+71	    @property
+72	    def token_count(self) -> int:
+73	        return self._token_count
+74	
+75	    @property
+76	    def token_count_with_pending(self) -> int:
+77	        return self._token_count + self._pending_token_estimate
+78	
+79	    @property
+80	    def n_checkpoints(self) -> int:
+81	        return self._next_checkpoint_id
+82	
+83	    @property
+84	    def system_prompt(self) -> str | None:
+85	        return self._system_prompt
+86	
+87	    @property
+88	    def file_backend(self) -> Path:
+89	        return self._file_backend
+90	
+91	    async def write_system_prompt(self, prompt: str) -> None:
+92	        """Write the system prompt as the first record of the context file.
+93	
+94	        If the file is empty, writes it directly. If the file already has content
+95	        (e.g. a legacy session without system prompt), prepends it atomically via a
+96	        temporary file to avoid corruption on crash and avoid loading the entire file
+97	        into memory.
+98	        """
+99	        prompt_line = json.dumps({"role": "_system_prompt", "content": prompt}) + "\n"
+100	
+101	        def _write_system_prompt_sync() -> None:
+102	            if not self._file_backend.exists() or self._file_backend.stat().st_size == 0:
+103	                self._file_backend.write_text(prompt_line, encoding="utf-8")
+104	                return
+105	
+106	            tmp_path = self._file_backend.with_suffix(".tmp")
+107	            with (
+108	                tmp_path.open("w", encoding="utf-8") as tmp_f,
+109	                self._file_backend.open(encoding="utf-8") as src_f,
+110	            ):
+111	                tmp_f.write(prompt_line)
+112	                while True:
+113	                    chunk = src_f.read(64 * 1024)
+114	                    if not chunk:
+115	                        break
+116	                    tmp_f.write(chunk)
+117	            tmp_path.replace(self._file_backend)
+118	
+119	        await asyncio.to_thread(_write_system_prompt_sync)
+120	
+121	        self._system_prompt = prompt
+122	
+123	    async def checkpoint(self, add_user_message: bool):
+124	        checkpoint_id = self._next_checkpoint_id
+125	        self._next_checkpoint_id += 1
+126	        logger.debug("Checkpointing, ID: {id}", id=checkpoint_id)
+127	
+128	        async with aiofiles.open(self._file_backend, "a", encoding="utf-8") as f:
+129	            await f.write(json.dumps({"role": "_checkpoint", "id": checkpoint_id}) + "\n")
+130	        if add_user_message:
+131	            await self.append_message(
+132	                Message(role="user", content=[system(f"CHECKPOINT {checkpoint_id}")])
+133	            )
+134	
+135	    async def revert_to(self, checkpoint_id: int):
+136	        """
+137	        Revert the context to the specified checkpoint.
+138	        After this, the specified checkpoint and all subsequent content will be
+139	        removed from the context. File backend will be rotated.
+140	
+141	        Args:
+142	            checkpoint_id (int): The ID of the checkpoint to revert to. 0 is the first checkpoint.
+143	
+144	        Raises:
+145	            ValueError: When the checkpoint does not exist.
+146	            RuntimeError: When no available rotation path is found.
+147	        """
+148	
+149	        logger.debug("Reverting checkpoint, ID: {id}", id=checkpoint_id)
+150	        if checkpoint_id >= self._next_checkpoint_id:
+151	            logger.error("Checkpoint {checkpoint_id} does not exist", checkpoint_id=checkpoint_id)
+152	            raise ValueError(f"Checkpoint {checkpoint_id} does not exist")
+153	
+154	        # rotate the context file
+155	        rotated_file_path = await next_available_rotation(self._file_backend)
+156	        if rotated_file_path is None:
+157	            logger.error("No available rotation path found")
+158	            raise RuntimeError("No available rotation path found")
+159	        await aiofiles.os.replace(self._file_backend, rotated_file_path)
+160	        logger.debug(
+161	            "Rotated context file: {rotated_file_path}", rotated_file_path=rotated_file_path
+162	        )
+163	
+164	        # restore the context until the specified checkpoint
+165	        self._history.clear()
+166	        self._token_count = 0
+167	        self._next_checkpoint_id = 0
+168	        self._system_prompt = None
+169	        messages_after_last_usage: list[Message] = []
+170	        async with (
+171	            aiofiles.open(rotated_file_path, encoding="utf-8", errors="replace") as old_file,
+172	            aiofiles.open(self._file_backend, "w", encoding="utf-8") as new_file,
+173	        ):
+174	            line_no = 0
+175	            async for line in old_file:
+176	                line_no += 1
+177	                if not line.strip():
+178	                    continue
+179	
+180	                line_json = self._parse_context_line(
+181	                    line,
+182	                    file_backend=rotated_file_path,
+183	                    line_no=line_no,
+184	                )
+185	                if line_json is None:
+186	                    continue
+187	                if line_json.get("role") == "_checkpoint" and line_json.get("id") == checkpoint_id:
+188	                    break
+189	
+190	                keep_line = self._apply_context_record(
+191	                    line_json,
+192	                    history=self._history,
+193	                    messages_after_last_usage=messages_after_last_usage,
+194	                    file_backend=rotated_file_path,
+195	                    line_no=line_no,
+196	                )
+197	                if keep_line:
+198	                    await new_file.write(line)
+199	
+200	        self._pending_token_estimate = estimate_text_tokens(messages_after_last_usage)
+201	
+202	    async def clear(self):
+203	        """
+204	        Clear the context history.
+205	        This is almost equivalent to revert_to(0), but without relying on the assumption
+206	        that the first checkpoint exists.
+207	        File backend will be rotated.
+208	
+209	        Raises:
+210	            RuntimeError: When no available rotation path is found.
+211	        """
+212	
+213	        logger.debug("Clearing context")
+214	
+215	        # rotate the context file
+216	        rotated_file_path = await next_available_rotation(self._file_backend)
+217	        if rotated_file_path is None:
+218	            logger.error("No available rotation path found")
+219	            raise RuntimeError("No available rotation path found")
+220	        await aiofiles.os.replace(self._file_backend, rotated_file_path)
+221	        self._file_backend.touch()
+222	        logger.debug(
+223	            "Rotated context file: {rotated_file_path}", rotated_file_path=rotated_file_path
+224	        )
+225	
+226	        self._history.clear()
+227	        self._token_count = 0
+228	        self._pending_token_estimate = 0
+229	        self._next_checkpoint_id = 0
+230	        self._system_prompt = None
+231	
+232	    async def append_message(self, message: Message | Sequence[Message]):
+233	        logger.debug("Appending message(s) to context: {message}", message=message)
+234	        messages = [message] if isinstance(message, Message) else message
+235	        self._history.extend(messages)
+236	        self._pending_token_estimate += estimate_text_tokens(messages)
+237	
+238	        async with aiofiles.open(self._file_backend, "a", encoding="utf-8") as f:
+239	            for message in messages:
+240	                await f.write(message.model_dump_json(exclude_none=True) + "\n")
+241	
+242	    async def update_token_count(self, token_count: int):
+243	        logger.debug("Updating token count in context: {token_count}", token_count=token_count)
+244	        self._token_count = token_count
+245	        self._pending_token_estimate = 0
+246	
+247	        async with aiofiles.open(self._file_backend, "a", encoding="utf-8") as f:
+248	            await f.write(json.dumps({"role": "_usage", "token_count": token_count}) + "\n")
+249	
+250	    def _parse_context_line(
+251	        self,
+252	        line: str,
+253	        *,
+254	        file_backend: Path,
+255	        line_no: int,
+256	    ) -> dict[str, Any] | None:
+257	        try:
+258	            line_json = json.loads(line, strict=False)
+259	        except json.JSONDecodeError as exc:
+260	            logger.warning(
+261	                "Skipping malformed context line {line_no} in {file}: {error}",
+262	                line_no=line_no,
+263	                file=file_backend,
+264	                error=exc,
+265	            )
+266	            return None
+267	        if not isinstance(line_json, dict):
+268	            logger.warning(
+269	                "Skipping non-object context line {line_no} in {file}",
+270	                line_no=line_no,
+271	                file=file_backend,
+272	            )
+273	            return None
+274	        return cast(dict[str, Any], line_json)
+275	
+276	    def _apply_context_record(
+277	        self,
+278	        line_json: dict[str, Any],
+279	        *,
+280	        history: list[Message],
+281	        messages_after_last_usage: list[Message],
+282	        file_backend: Path,
+283	        line_no: int,
+284	    ) -> bool:
+285	        role = line_json.get("role")
+286	        if not isinstance(role, str):
+287	            logger.warning(
+288	                "Skipping context line {line_no} in {file}: missing or invalid role",
+289	                line_no=line_no,
+290	                file=file_backend,
+291	            )
+292	            return False
+293	        if role == "_system_prompt":
+294	            content = line_json.get("content")
+295	            if not isinstance(content, str):
+296	                logger.warning(
+297	                    "Skipping invalid system prompt line {line_no} in {file}",
+298	                    line_no=line_no,
+299	                    file=file_backend,
+300	                )
+301	                return False
+302	            self._system_prompt = content
+303	            return True
+304	        if role == "_usage":
+305	            token_count = line_json.get("token_count")
+306	            if not isinstance(token_count, int):
+307	                logger.warning(
+308	                    "Skipping invalid usage line {line_no} in {file}",
+309	                    line_no=line_no,
+310	                    file=file_backend,
+311	                )
+312	                return False
+313	            self._token_count = token_count
+314	            messages_after_last_usage.clear()
+315	            return True
+316	        if role == "_checkpoint":
+317	            checkpoint_id = line_json.get("id")
+318	            if not isinstance(checkpoint_id, int):
+319	                logger.warning(
+320	                    "Skipping invalid checkpoint line {line_no} in {file}",
+
+... (output truncated to budget; the source above is complete and verbatim — treat it as already Read. For any area not covered, run another codegraph_explore with the specific names — do NOT Read these files.)
