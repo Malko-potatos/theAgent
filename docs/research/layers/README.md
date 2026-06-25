@@ -20,11 +20,11 @@ P00 is not a layer. It is the first analysis axis when the research question is 
 
 ## Layers
 
-- `L01-intent-intake.md`: normalize user input into a system-understandable request, command, message, or task.
+- [L01-intent-intake.md](L01-intent-intake.md): normalize user input into a system-understandable request, command, message, or task.
 - `L02-active-context.md`: assemble the model-facing context from rules, skills, recent conversation, memory, and retrieval.
 - `L03-model-client.md`: communicate with LLM providers, including auth, retries, streaming, and provider adapters.
 - `L04-action-grammar.md`: validate model-requested actions, tool calls, command syntax, and schemas.
-- `L05-tool-harness.md`: execute tools, manage side effects, sandboxing, timeouts, and result capture.
+- [L05-tool-harness.md](L05-tool-harness.md): execute tools, manage side effects, sandboxing, timeouts, and result capture.
 - `L06-approval-policy.md`: decide when risky actions need approval and route the approval decision.
 - `L07-observation-ir.md`: convert model/tool results into UI-friendly observations, events, and display blocks.
 - [L08-trajectory.md](L08-trajectory.md): persist sessions, transcripts, event logs, checkpoints, and replayable views.
