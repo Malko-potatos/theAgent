@@ -24,5 +24,6 @@ Current design contracts:
 
 - [P00 Target Loop Contract](P00-target-loop-contract.md)
 - [L08 Trajectory Kernel Contract](L08-trajectory-kernel-contract.md)
+- [Artifact Preview Contract](artifact-preview-contract.md)
 
 Do not use this folder for raw research captures or temporary drafts. Put those in `01_sources/`, `inputs/`, or `work/`.
